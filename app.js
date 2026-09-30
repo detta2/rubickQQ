@@ -48,8 +48,8 @@ function applyMoveToState(move){
       const tmp=[s[0][6],s[0][7],s[0][8]];
       cubeState[0][6]=s[4][8];cubeState[0][7]=s[4][5];cubeState[0][8]=s[4][2];
       cubeState[4][8]=s[3][2];cubeState[4][5]=s[3][1];cubeState[4][2]=s[3][0];
-      cubeState[3][2]=s[1][6];cubeState[3][1]=s[1][3];cubeState[3][0]=s[1][0];
-      cubeState[1][6]=tmp[0];cubeState[1][3]=tmp[1];cubeState[1][0]=tmp[2];
+      cubeState[3][0]=s[1][6];cubeState[3][1]=s[1][3];cubeState[3][2]=s[1][0];
+      cubeState[1][0]=tmp[0];cubeState[1][3]=tmp[1];cubeState[1][6]=tmp[2];
     }else if(face==='B'){
       const tmp=[s[0][0],s[0][1],s[0][2]];
       cubeState[0][0]=s[1][2];cubeState[0][1]=s[1][5];cubeState[0][2]=s[1][8];
@@ -72,8 +72,8 @@ function applyMoveToState(move){
       const tmp=[s[0][3],s[0][4],s[0][5]];
       cubeState[0][3]=s[4][7];cubeState[0][4]=s[4][4];cubeState[0][5]=s[4][1];
       cubeState[4][7]=s[3][5];cubeState[4][4]=s[3][4];cubeState[4][1]=s[3][3];
-      cubeState[3][5]=s[1][7];cubeState[3][4]=s[1][4];cubeState[3][3]=s[1][1];
-      cubeState[1][7]=tmp[0];cubeState[1][4]=tmp[1];cubeState[1][1]=tmp[2];
+      cubeState[3][3]=s[1][7];cubeState[3][4]=s[1][4];cubeState[3][5]=s[1][1];
+      cubeState[1][1]=tmp[0];cubeState[1][4]=tmp[1];cubeState[1][7]=tmp[2];
     }
   }
 }
