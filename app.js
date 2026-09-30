@@ -472,36 +472,53 @@ function displaySolution3d() {
 }
 
 function jumpToMove3d(idx) {
-  // Reset to original painted state, then apply moves up to idx
-  // For simplicity, we track moves applied. Rebuild from scratch is complex.
-  // Instead, step forward/backward from current.
-  while (currentMoveIdx3d < idx) { stepForward3d(); }
-  while (currentMoveIdx3d > idx) { stepBackward3d(); }
+  // Jump instantly: apply state changes without animation, rebuild once.
+  // (The old while-loop called stepForward repeatedly, rebuilding the
+  // whole 3D cube synchronously dozens of times = freeze/crash.)
+  if (isAnimatingPaint) return;
+  isPlaying3d = false;
+  const playBtn = document.getElementById('btn-play3d');
+  if (playBtn) playBtn.textContent = '▶ Putar Solusi';
+  idx = Math.max(-1, Math.min(solutionMoves3d.length - 1, idx));
+  while (currentMoveIdx3d < idx) {
+    currentMoveIdx3d++;
+    applyMoveToState(solutionMoves3d[currentMoveIdx3d]);
+  }
+  while (currentMoveIdx3d > idx) {
+    const mv = solutionMoves3d[currentMoveIdx3d];
+    const inv = mv.endsWith("'") ? mv.slice(0,-1) : mv.endsWith('2') ? mv : mv + "'";
+    applyMoveToState(inv);
+    currentMoveIdx3d--;
+  }
+  buildPaintCube();
+  displaySolution3d();
 }
 
 function stepForward3d() {
   if (currentMoveIdx3d >= solutionMoves3d.length - 1) return;
+  if (isAnimatingPaint) return; // never overlap animations
   currentMoveIdx3d++;
   const mv = solutionMoves3d[currentMoveIdx3d];
   applyMoveToState(mv);
+  displaySolution3d();
   animateMoveOnScene(mv, scenePaint, cubiesPaint, cameraPaint, () => {
     buildPaintCube();
     displaySolution3d();
   });
-  displaySolution3d();
 }
 
 function stepBackward3d() {
   if (currentMoveIdx3d < 0) return;
+  if (isAnimatingPaint) return; // never overlap animations
   const mv = solutionMoves3d[currentMoveIdx3d];
   const inv = mv.endsWith("'") ? mv.slice(0,-1) : mv.endsWith('2') ? mv : mv + "'";
   currentMoveIdx3d--;
   applyMoveToState(inv);
+  displaySolution3d();
   animateMoveOnScene(inv, scenePaint, cubiesPaint, cameraPaint, () => {
     buildPaintCube();
     displaySolution3d();
   });
-  displaySolution3d();
 }
 
 document.getElementById('btn-next3d').addEventListener('click', stepForward3d);
