@@ -348,12 +348,43 @@ function getPaintStickerColor(face, r, c) {
   return COLORS[cubeState[face][r*3 + c]];
 }
 
+// Sticker textures: black border + color fill, like a real Rubik's cube.
+// Cached per color so we only draw 6 canvases.
+const stickerTexCache = {};
+function getStickerTexture(colorCss) {
+  if (!stickerTexCache[colorCss]) {
+    const S = 96, B = 10; // size, black border width
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = S;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, S, S);
+    ctx.fillStyle = colorCss;
+    const r = 14, x = B, y = B, w = S - 2*B, h = S - 2*B;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fill();
+    const tex = new THREE.CanvasTexture(cv);
+    tex.anisotropy = 4;
+    stickerTexCache[colorCss] = tex;
+  }
+  return stickerTexCache[colorCss];
+}
+function stickerMaterial(colorCss) {
+  return new THREE.MeshLambertMaterial({ map: getStickerTexture(colorCss) });
+}
+
 function buildPaintCube() {
   if (!scenePaint) initPaintScene();
   if (!scenePaint) return;
   cubiesPaint.forEach(c => scenePaint.remove(c));
   cubiesPaint = [];
-  const geo = new THREE.BoxGeometry(0.84, 0.84, 0.84);
+  const geo = new THREE.BoxGeometry(0.99, 0.99, 0.99);
   for (let x = -1; x <= 1; x++) {
     for (let y = -1; y <= 1; y++) {
       for (let z = -1; z <= 1; z++) {
@@ -362,37 +393,37 @@ function buildPaintCube() {
         // +X (R=1)
         if (x === 1) {
           const r = 1 - y, c = 1 - z;
-          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(1, r, c) }));
+          materials.push(stickerMaterial(getPaintStickerColor(1, r, c)));
           faceInfo.push({ face: 1, r, c });
         } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // -X (L=4)
         if (x === -1) {
           const r = 1 - y, c = z + 1;
-          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(4, r, c) }));
+          materials.push(stickerMaterial(getPaintStickerColor(4, r, c)));
           faceInfo.push({ face: 4, r, c });
         } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // +Y (U=0)
         if (y === 1) {
           const r = z + 1, c = x + 1;
-          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(0, r, c) }));
+          materials.push(stickerMaterial(getPaintStickerColor(0, r, c)));
           faceInfo.push({ face: 0, r, c });
         } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // -Y (D=3)
         if (y === -1) {
           const r = 1 - z, c = x + 1;
-          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(3, r, c) }));
+          materials.push(stickerMaterial(getPaintStickerColor(3, r, c)));
           faceInfo.push({ face: 3, r, c });
         } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // +Z (F=2)
         if (z === 1) {
           const r = 1 - y, c = x + 1;
-          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(2, r, c) }));
+          materials.push(stickerMaterial(getPaintStickerColor(2, r, c)));
           faceInfo.push({ face: 2, r, c });
         } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // -Z (B=5)
         if (z === -1) {
           const r = 1 - y, c = 1 - x;
-          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(5, r, c) }));
+          materials.push(stickerMaterial(getPaintStickerColor(5, r, c)));
           faceInfo.push({ face: 5, r, c });
         } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         const cubie = new THREE.Mesh(geo, materials);
@@ -427,7 +458,9 @@ function handlePaintTap(e) {
   if (!info) return;
   // Paint it
   cubeState[info.face][info.r * 3 + info.c] = paintColor;
-  hit.object.material[matIndex].color.set(COLORS[paintColor]);
+  const pm = hit.object.material[matIndex];
+  pm.map = getStickerTexture(COLORS[paintColor]);
+  pm.needsUpdate = true;
   // Also refresh 2D net
   buildNet();
 }
