@@ -91,12 +91,11 @@ function initPaintScene() {
   container.innerHTML = '';
   const w = container.clientWidth || 320, h = 300;
   scenePaint = new THREE.Scene();
-  // transparent: CSS radial glow on .stage shows through
+  scenePaint.background = new THREE.Color(0xf0f0f0);
   cameraPaint = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
   cameraPaint.position.set(5.5, 5, 6.8); // further back = more margin for camera drag
   cameraPaint.lookAt(0, 0, 0);
-  rendererPaint = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  rendererPaint.setClearColor(0x000000, 0);
+  rendererPaint = new THREE.WebGLRenderer({ antialias: true });
   rendererPaint.setSize(w, h);
   container.appendChild(rendererPaint.domElement);
   scenePaint.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -472,8 +471,7 @@ function buildPaintPalette() {
   pal.innerHTML = '';
   COLORS.forEach((col, i) => {
     const d = document.createElement('div');
-    d.className = 'swatch' + (i === paintColor ? ' active' : '');
-    d.style.background = col;
+    d.style.cssText = `width:52px;height:44px;border-radius:8px;background:${col};cursor:pointer;border:3px solid ${i === paintColor ? '#f2b13d' : '#333'};box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
     d.title = COLOR_NAMES[i];
     d.addEventListener('click', () => {
       paintColor = i;
@@ -510,42 +508,7 @@ setTimeout(() => {
   catch (e) { console.warn('Solver init failed:', e); }
 }, 1500);
 
-function showSolveError(msg) {
-  const panel = document.getElementById('solution3d');
-  const err = document.getElementById('solve-error');
-  if (panel) panel.style.display = 'block';
-  if (err) {
-    err.textContent = msg;
-    err.style.display = 'block';
-    err.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-  // hide any previous solution content
-  const banner = panel ? panel.querySelector('.banner') : null;
-  if (banner) banner.style.display = 'none';
-  const stepper = panel ? panel.querySelector('.stepper') : null;
-  if (stepper) stepper.style.display = 'none';
-  const moves = document.getElementById('moves3d');
-  if (moves) moves.innerHTML = '';
-  const playBtn = document.getElementById('btn-play3d');
-  if (playBtn) playBtn.style.display = 'none';
-}
-
-function hideSolveError() {
-  const panel = document.getElementById('solution3d');
-  const err = document.getElementById('solve-error');
-  if (err) err.style.display = 'none';
-  if (panel) {
-    const banner = panel.querySelector('.banner');
-    if (banner) banner.style.display = '';
-    const stepper = panel.querySelector('.stepper');
-    if (stepper) stepper.style.display = '';
-    const playBtn = document.getElementById('btn-play3d');
-    if (playBtn) playBtn.style.display = '';
-  }
-}
-
 document.getElementById('btn-solve-3d').addEventListener('click', () => {
-  hideSolveError();
   // Validate: each color must appear exactly 9 times
   const counts = [0,0,0,0,0,0];
   for (let f = 0; f < 6; f++) {
@@ -553,7 +516,7 @@ document.getElementById('btn-solve-3d').addEventListener('click', () => {
   }
   for (let c = 0; c < 6; c++) {
     if (counts[c] !== 9) {
-      showSolveError(`Warna ${COLOR_NAMES[c]} ada ${counts[c]}, harus 9. Lengkapi dulu warnanya!`);
+      alert(`Warna ${COLOR_NAMES[c]} ada ${counts[c]}, harus 9. Lengkapi dulu warnanya!`);
       return;
     }
   }
@@ -588,7 +551,7 @@ document.getElementById('btn-solve-3d').addEventListener('click', () => {
       const reallySolved = cubeState.every(f => f.every(s => s === f[4]));
       cubeState = saved;
       if (!reallySolved) {
-        showSolveError('Warnanya nggak valid (kombinasi mustahil di kubus asli). Cek lagi cat warnanya, atau tekan Reset lalu acak pakai drag.');
+        alert('Warnanya nggak valid (kombinasi mustahil di kubus asli).\nCek lagi cat warnanya, atau tekan Reset lalu acak pakai drag.');
         btn.textContent = origText;
         btn.disabled = false;
         return;
@@ -598,7 +561,7 @@ document.getElementById('btn-solve-3d').addEventListener('click', () => {
       document.getElementById('solution3d').style.display = 'block';
       document.getElementById('solution3d').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (err) {
-      showSolveError('Gagal solve: ' + err.message + ' Pastikan warnanya valid (masing-masing 9).');
+      alert('Gagal solve: ' + err.message + '\nPastikan warnanya valid (masing-masing 9).');
     }
     btn.textContent = origText;
     btn.disabled = false;
@@ -625,7 +588,7 @@ function displaySolution3d() {
   solutionMoves3d.forEach((mv, idx) => {
     const chip = document.createElement('span');
     chip.textContent = mv;
-    chip.className = 'chip' + (idx === currentMoveIdx3d ? ' current' : idx < currentMoveIdx3d ? ' done' : '');
+    chip.style.cssText = `padding:6px 12px;border-radius:8px;background:${idx <= currentMoveIdx3d ? '#f2b13d' : '#fff'};color:#000;font-weight:bold;cursor:pointer;border:2px solid #333;`;
     chip.addEventListener('click', () => jumpToMove3d(idx));
     container.appendChild(chip);
   });
