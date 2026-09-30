@@ -274,6 +274,7 @@ function dragToMove(grab, dxScreen, dyScreen) {
 
 function doPaintTurn(move) {
   if (isAnimatingPaint) return; // jangan tumpuk: state & visual harus sinkron
+  pushPaintHistory({ type: 'move', move });
   applyMoveToState(move);
   animateMoveOnScene(move, scenePaint, cubiesPaint, cameraPaint, () => {
     buildPaintCube();
@@ -456,8 +457,12 @@ function handlePaintTap(e) {
   const matIndex = hit.face.materialIndex;
   const info = hit.object.userData.faceInfo[matIndex];
   if (!info) return;
-  // Paint it
-  cubeState[info.face][info.r * 3 + info.c] = paintColor;
+  // Paint it (catat untuk undo)
+  const pIdx = info.r * 3 + info.c;
+  if (cubeState[info.face][pIdx] !== paintColor) {
+    pushPaintHistory({ type: 'paint', face: info.face, idx: pIdx, prev: cubeState[info.face][pIdx] });
+    cubeState[info.face][pIdx] = paintColor;
+  }
   const pm = hit.object.material[matIndex];
   pm.map = getStickerTexture(COLORS[paintColor]);
   pm.needsUpdate = true;
@@ -481,10 +486,46 @@ function buildPaintPalette() {
   });
 }
 
+// ===== Undo history (tombol back) =====
+let paintHistory = [];
+function updateBackBtn() {
+  const b = document.getElementById('btn-back-paint');
+  if (b) b.disabled = paintHistory.length === 0;
+}
+function pushPaintHistory(entry) {
+  paintHistory.push(entry);
+  if (paintHistory.length > 100) paintHistory.shift();
+  updateBackBtn();
+}
+function invertMove3d(move) {
+  if (move.endsWith('2')) return move;
+  return move.endsWith("'") ? move.slice(0, -1) : move + "'";
+}
+function hideSolution3d() {
+  const s = document.getElementById('solution3d');
+  if (s) s.style.display = 'none';
+}
+document.getElementById('btn-back-paint').addEventListener('click', () => {
+  if (isAnimatingPaint) return;
+  const h = paintHistory.pop();
+  updateBackBtn();
+  if (!h) return;
+  if (h.type === 'paint') {
+    cubeState[h.face][h.idx] = h.prev;
+  } else {
+    applyMoveToState(invertMove3d(h.move));
+  }
+  buildPaintCube();
+  buildNet();
+  hideSolution3d();
+});
+
 // Reset to plain white
 document.getElementById('btn-reset-paint').addEventListener('click', () => {
   if (isAnimatingPaint) return;
   for (let f = 0; f < 6; f++) cubeState[f] = new Array(9).fill(0); // all white
+  paintHistory = []; updateBackBtn();
+  hideSolution3d();
   buildPaintCube();
   buildNet();
 });

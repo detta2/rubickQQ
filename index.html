@@ -22,6 +22,20 @@
   .btn-primary { background: #f2b13d; color: #000; }
   .btn-secondary { background: #fff; color: #222; border: 2px solid #333; }
   .btn:disabled { opacity: 0.4; }
+  .btn-solve-big {
+    display: block; width: 100%; padding: 17px; margin: 8px 0 10px;
+    border: none; border-radius: 18px; font-size: 17px; font-weight: 800;
+    cursor: pointer; background: #f2b13d; color: #231603;
+    box-shadow: 0 8px 20px rgba(242,177,61,.45), inset 0 1px 0 rgba(255,255,255,.4);
+  }
+  .btn-solve-big:active { transform: scale(.98); }
+  .btn-solve-big:disabled { opacity: 0.4; }
+  .mini-links { display: flex; justify-content: center; gap: 28px; margin-bottom: 8px; }
+  .link-btn {
+    background: none; border: none; color: #999; font-size: 14px; font-weight: 600;
+    cursor: pointer; padding: 6px 4px; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .link-btn:disabled { opacity: 0.35; text-decoration: none; cursor: default; }
   .moves { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0; }
   .move {
     background: #fff; padding: 8px 14px; border-radius: 8px;
@@ -37,8 +51,11 @@
 <div class="wrap">
   <div class="palette" id="palette3d"></div>
   <div style="background:#f0f0f0;border-radius:12px;"><div id="cube3d-paint" style="width:100%;height:320px;position:relative;touch-action:none;"></div></div>
-  <button class="btn btn-secondary" id="btn-reset-paint">⚪ Reset Putih Polos</button>
-  <button class="btn btn-primary" id="btn-solve-3d">🧮 Solve Kubus Ini</button>
+  <button class="btn-solve-big" id="btn-solve-3d">solve</button>
+  <div class="mini-links">
+    <button class="link-btn" id="btn-back-paint" disabled>‹ back</button>
+    <button class="link-btn" id="btn-reset-paint">reset</button>
+  </div>
   <div id="solution3d" style="display:none;margin-top:16px;">
     <div style="background:#e8f5e9;border-radius:12px;padding:12px;text-align:center;margin-bottom:12px;">
       <div style="font-weight:800;color:#2e7d32;font-size:18px;letter-spacing:1px;">🎯 SIAP DISELESAIKAN!</div>
@@ -59,6 +76,6 @@
 <script src="cubejs/cube.js"></script>
 <script src="cubejs/solve.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
