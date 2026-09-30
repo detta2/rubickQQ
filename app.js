@@ -466,6 +466,14 @@ setTimeout(() => { buildPaintPalette(); buildPaintCube(); }, 500);
 let solutionMoves3d = [];
 let currentMoveIdx3d = -1;
 
+let solverReady = false;
+// Pre-build Kociemba tables once at load (async, so it doesn't block rendering).
+// initSolver is heavy (~1-2s); doing it per-click freezes mobile UI.
+setTimeout(() => {
+  try { Cube.initSolver(); solverReady = true; }
+  catch (e) { console.warn('Solver init failed:', e); }
+}, 1500);
+
 document.getElementById('btn-solve-3d').addEventListener('click', () => {
   // Validate: each color must appear exactly 9 times
   const counts = [0,0,0,0,0,0];
@@ -487,18 +495,27 @@ document.getElementById('btn-solve-3d').addEventListener('click', () => {
       kStr += faceMap[cubeState[f][i]];
     }
   }
-  try {
-    Cube.initSolver();
-    const cube = Cube.fromString(kStr);
-    const sol = cube.solve();
-    solutionMoves3d = sol.split(' ').filter(s => s.length > 0);
-    currentMoveIdx3d = -1;
-    displaySolution3d();
-    document.getElementById('solution3d').style.display = 'block';
-    document.getElementById('solution3d').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } catch (err) {
-    alert('Gagal solve: ' + err.message + '\nPastikan warnanya valid (masing-masing 9).');
-  }
+  const btn = document.getElementById('btn-solve-3d');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ Menghitung...';
+  btn.disabled = true;
+  // Let UI paint the loading state before the heavy solve() blocks the thread
+  setTimeout(() => {
+    try {
+      if (!solverReady) Cube.initSolver();
+      const cube = Cube.fromString(kStr);
+      const sol = cube.solve();
+      solutionMoves3d = sol.split(' ').filter(s => s.length > 0);
+      currentMoveIdx3d = -1;
+      displaySolution3d();
+      document.getElementById('solution3d').style.display = 'block';
+      document.getElementById('solution3d').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) {
+      alert('Gagal solve: ' + err.message + '\nPastikan warnanya valid (masing-masing 9).');
+    }
+    btn.textContent = origText;
+    btn.disabled = false;
+  }, 50);
 });
 
 function displaySolution3d() {
