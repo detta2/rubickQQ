@@ -455,6 +455,50 @@ initCubeState();
 buildPalette();
 buildNet();
 
+// ===== LOGICAL MOVE APPLICATION (for paint mode turns) =====
+function rotFaceCW(s){return [s[6],s[3],s[0],s[7],s[4],s[1],s[8],s[5],s[2]];}
+function applyMoveToState(move){
+  const face=move[0], mod=move.slice(1);
+  let times=mod==="'"?3:mod==="2"?2:1;
+  const fi={U:0,R:1,F:2,D:3,L:4,B:5}[face];
+  if(fi===undefined)return;
+  for(let t=0;t<times;t++){
+    const s=cubeState.map(f=>[...f]);
+    cubeState[fi]=rotFaceCW(s[fi]);
+    if(face==='U'){
+      const tmp=[s[2][0],s[2][1],s[2][2]];
+      for(let i=0;i<3;i++){cubeState[2][i]=s[1][i];cubeState[1][i]=s[5][i];cubeState[5][i]=s[4][i];cubeState[4][i]=tmp[i];}
+    }else if(face==='D'){
+      const tmp=[s[2][6],s[2][7],s[2][8]];
+      for(let i=0;i<3;i++){cubeState[2][6+i]=s[4][6+i];cubeState[4][6+i]=s[5][6+i];cubeState[5][6+i]=s[1][6+i];cubeState[1][6+i]=tmp[i];}
+    }else if(face==='R'){
+      const tmp=[s[0][2],s[0][5],s[0][8]];
+      cubeState[0][2]=s[2][2];cubeState[0][5]=s[2][5];cubeState[0][8]=s[2][8];
+      cubeState[2][2]=s[3][2];cubeState[2][5]=s[3][5];cubeState[2][8]=s[3][8];
+      cubeState[3][2]=s[5][6];cubeState[3][5]=s[5][3];cubeState[3][8]=s[5][0];
+      cubeState[5][6]=tmp[0];cubeState[5][3]=tmp[1];cubeState[5][0]=tmp[2];
+    }else if(face==='L'){
+      const tmp=[s[0][0],s[0][3],s[0][6]];
+      cubeState[0][0]=s[5][8];cubeState[0][3]=s[5][5];cubeState[0][6]=s[5][2];
+      cubeState[5][8]=s[3][0];cubeState[5][5]=s[3][3];cubeState[5][2]=s[3][6];
+      cubeState[3][0]=s[2][0];cubeState[3][3]=s[2][3];cubeState[3][6]=s[2][6];
+      cubeState[2][0]=tmp[0];cubeState[2][3]=tmp[1];cubeState[2][6]=tmp[2];
+    }else if(face==='F'){
+      const tmp=[s[0][6],s[0][7],s[0][8]];
+      cubeState[0][6]=s[4][8];cubeState[0][7]=s[4][5];cubeState[0][8]=s[4][2];
+      cubeState[4][8]=s[3][2];cubeState[4][5]=s[3][1];cubeState[4][2]=s[3][0];
+      cubeState[3][2]=s[1][6];cubeState[3][1]=s[1][3];cubeState[3][0]=s[1][0];
+      cubeState[1][6]=tmp[0];cubeState[1][3]=tmp[1];cubeState[1][0]=tmp[2];
+    }else if(face==='B'){
+      const tmp=[s[0][0],s[0][1],s[0][2]];
+      cubeState[0][0]=s[1][2];cubeState[0][1]=s[1][5];cubeState[0][2]=s[1][8];
+      cubeState[1][2]=s[3][8];cubeState[1][5]=s[3][7];cubeState[1][8]=s[3][6];
+      cubeState[3][8]=s[4][6];cubeState[3][7]=s[4][3];cubeState[3][6]=s[4][0];
+      cubeState[4][6]=tmp[0];cubeState[4][3]=tmp[1];cubeState[4][0]=tmp[2];
+    }
+  }
+}
+
 // ===== 3D PAINT MODE =====
 let scenePaint = null, cameraPaint = null, rendererPaint = null;
 let cubiesPaint = [];
@@ -608,6 +652,16 @@ function buildPaintPalette() {
     pal.appendChild(d);
   });
 }
+
+// Turn buttons in paint mode
+document.querySelectorAll('#turn-buttons button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const move = btn.dataset.move;
+    applyMoveToState(move);
+    buildPaintCube(); // rebuild with new state (instant for now)
+    buildNet(); // sync 2D net
+  });
+});
 
 // Reset to plain white
 document.getElementById('btn-reset-paint').addEventListener('click', () => {
