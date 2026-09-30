@@ -196,6 +196,21 @@ function closestColor(r, g, b) {
 // Solver
 document.getElementById('btn-solve').addEventListener('click', () => {
   try {
+    // Cek apakah kubus sudah solved (setiap face 9 stiker = warna face)
+    let isSolved = true;
+    for (let f = 0; f < 6 && isSolved; f++) {
+      for (let i = 0; i < 9; i++) {
+        if (cubeState[f][i] !== f) { isSolved = false; break; }
+      }
+    }
+    if (isSolved) {
+      solutionMoves = [];
+      const movesDiv = document.getElementById('moves');
+      movesDiv.innerHTML = '<div style="color:#4caf50;font-weight:700;padding:12px">✅ Kubus sudah solved! Tidak ada langkah.</div>';
+      document.getElementById('solution').style.display = 'block';
+      currentMoveIndex = 0;
+      return;
+    }
     // Convert cubeState to facelet string (U,R,F,D,L,B order)
     const colorLetter = ['U', 'R', 'F', 'D', 'L', 'B'];
     let facelet = '';
