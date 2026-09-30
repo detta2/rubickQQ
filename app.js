@@ -125,6 +125,7 @@ function initPaintScene() {
   }
   
   el.addEventListener('pointerdown', e => {
+    e.preventDefault(); // stop page scroll on mobile
     const hit = raycastCube(e);
     if (hit) {
       grabInfo = { ...hit, turned: false,
@@ -145,7 +146,7 @@ function initPaintScene() {
       const curPlanePoint = planeIntersect(e, grabInfo.point, grabInfo.normal);
       if (curPlanePoint && grabInfo.startPlanePoint) {
         const dragVec = curPlanePoint.clone().sub(grabInfo.startPlanePoint);
-        if (dragVec.length() > 0.35) {
+        if (dragVec.length() > 0.25) { // lower threshold = easier to turn
           const move = dragToMove(grabInfo, dragVec);
           if (move) {
             grabInfo.turned = true;
