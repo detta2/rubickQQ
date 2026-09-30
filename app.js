@@ -75,7 +75,7 @@ function initPaintScene() {
   scenePaint = new THREE.Scene();
   scenePaint.background = new THREE.Color(0xf0f0f0);
   cameraPaint = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
-  cameraPaint.position.set(4.5, 4, 5.5);
+  cameraPaint.position.set(5.5, 5, 6.8); // further back = more margin for camera drag
   cameraPaint.lookAt(0, 0, 0);
   rendererPaint = new THREE.WebGLRenderer({ antialias: true });
   rendererPaint.setSize(w, h);
@@ -115,7 +115,15 @@ function initPaintScene() {
       new THREE.Vector3(0,1,0), new THREE.Vector3(0,-1,0),
       new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,-1)
     ];
-    return { cubie: hit.object, normal: normals[matIndex], faceInfo: info, point: hit.point.clone() };
+    // Transform to world space: cubies rotate after turns, local normal is wrong
+    const worldQuat = hit.object.getWorldQuaternion(new THREE.Quaternion());
+    const worldNormal = normals[matIndex].clone().applyQuaternion(worldQuat);
+    // Snap to nearest axis (avoid float drift)
+    const ax = Math.abs(worldNormal.x), ay = Math.abs(worldNormal.y), az = Math.abs(worldNormal.z);
+    if (ax >= ay && ax >= az) worldNormal.set(Math.sign(worldNormal.x), 0, 0);
+    else if (ay >= ax && ay >= az) worldNormal.set(0, Math.sign(worldNormal.y), 0);
+    else worldNormal.set(0, 0, Math.sign(worldNormal.z));
+    return { cubie: hit.object, normal: worldNormal, faceInfo: info, point: hit.point.clone() };
   }
   
   function planeIntersect(e, planePoint, planeNormal) {
@@ -151,6 +159,11 @@ function initPaintScene() {
       if (move) {
         grabInfo.turned = true;
         doPaintTurn(move);
+      } else if (Math.hypot(dx, dy) > 40) {
+        // Long ambiguous drag on sticker: user likely wants to orbit.
+        // Switch this gesture to camera mode so the whole screen is usable.
+        grabInfo = null;
+        dragStartPaint = { x: e.clientX, y: e.clientY };
       }
     } else if (!grabInfo && isDraggingPaint) {
       const angle = dx * 0.01;
