@@ -54,3 +54,7 @@ Every solution is programmatically verified before display — if the moves don'
 ## 📄 License
 
 MIT — free to use, modify, and distribute.
+
+## 👤 Author
+
+**detta** — https://github.com/detta2
