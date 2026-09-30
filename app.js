@@ -353,14 +353,14 @@ function getPaintStickerColor(face, r, c) {
 const stickerTexCache = {};
 function getStickerTexture(colorCss) {
   if (!stickerTexCache[colorCss]) {
-    const S = 96, B = 10; // size, black border width
+    const S = 96, B = 6; // size, black border width
     const cv = document.createElement('canvas');
     cv.width = cv.height = S;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, S, S);
     ctx.fillStyle = colorCss;
-    const r = 14, x = B, y = B, w = S - 2*B, h = S - 2*B;
+    const r = 9, x = B, y = B, w = S - 2*B, h = S - 2*B;
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
