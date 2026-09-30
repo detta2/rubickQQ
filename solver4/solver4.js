@@ -319,6 +319,35 @@
     return s3;
   }
 
+  // ============ OPTIMIZER ============
+  // Gabungkan langkah berurutan di face yang sama: R R' -> hilang, R R -> R2, dll.
+  function optimizeMoves(moves) {
+    function parse(m) {
+      const wide = m.length > 1 && m[1] === 'w';
+      const face = wide ? m.slice(0, 2) : m[0];
+      const suf = wide ? m.slice(2) : m.slice(1);
+      let amt = 1;
+      if (suf === "'") amt = 3;
+      else if (suf === '2' || suf === '2\'') amt = 2;
+      return { face, amt };
+    }
+    const stack = [];
+    for (const m of moves) {
+      const { face, amt } = parse(m);
+      if (stack.length && stack[stack.length-1].face === face) {
+        const top = stack.pop();
+        const na = (top.amt + amt) % 4;
+        if (na === 1) stack.push({ face, amt: 1 });
+        else if (na === 2) stack.push({ face, amt: 2 });
+        else if (na === 3) stack.push({ face, amt: 3 });
+        // na===0 -> hilang
+      } else {
+        stack.push({ face, amt });
+      }
+    }
+    return stack.map(({ face, amt }) => amt === 1 ? face : amt === 2 ? face + '2' : face + "'");
+  }
+
   // ============ MAIN SOLVER ============
   // Helper: cek apakah state solved (4x4)
   function isSolvedState(s) {
@@ -413,10 +442,19 @@
       // VERIFIKASI INTERNAL: apply semua moves ke orig, harus solved
       const t = orig.map(f => f.slice());
       for (const mv of allMoves) applyMove4(t, mv);
-      if (isSolvedState(t)) {
-        return { moves: allMoves, phases };
+      if (!isSolvedState(t)) continue; // coba kombinasi parity berikutnya
+
+      // OPTIMASI: gabungkan langkah redundan (R R' -> hilang, R R -> R2)
+      const optMoves = optimizeMoves(allMoves);
+      // Verifikasi hasil optimasi
+      const t2 = orig.map(f => f.slice());
+      for (const mv of optMoves) applyMove4(t2, mv);
+      if (!isSolvedState(t2)) {
+        return { moves: allMoves, phases }; // fallback: tanpa optimasi
       }
-      // Jika gagal, coba kombinasi parity berikutnya
+      // Optimasi tiap phase untuk label display
+      const optPhases = phases.map(ph => ({ name: ph.name, moves: optimizeMoves(ph.moves) }));
+      return { moves: optMoves, phases: optPhases };
     }
     return { error: 'solver tidak menemukan solusi (coba shuffle ulang)' };
   }
