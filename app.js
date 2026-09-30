@@ -353,7 +353,7 @@ function buildPaintCube() {
   if (!scenePaint) return;
   cubiesPaint.forEach(c => scenePaint.remove(c));
   cubiesPaint = [];
-  const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+  const geo = new THREE.BoxGeometry(0.84, 0.84, 0.84);
   for (let x = -1; x <= 1; x++) {
     for (let y = -1; y <= 1; y++) {
       for (let z = -1; z <= 1; z++) {
@@ -489,11 +489,15 @@ document.getElementById('btn-solve-3d').addEventListener('click', () => {
   }
   // Convert cubeState to Kociemba string
   // cubeState faces: 0=U,1=R,2=F,3=D,4=L,5=B. Kociemba expects URFDLB order.
-  const faceMap = ['U','R','F','D','L','B'];
+  // Map colors via the CENTERS (a center defines its face's color),
+  // so repainted centers can't corrupt the mapping.
+  const faceOrder = ['U','R','F','D','L','B'];
+  const colorToFace = {};
+  for (let f = 0; f < 6; f++) colorToFace[cubeState[f][4]] = faceOrder[f];
   let kStr = '';
   for (let f = 0; f < 6; f++) {
     for (let i = 0; i < 9; i++) {
-      kStr += faceMap[cubeState[f][i]];
+      kStr += colorToFace[cubeState[f][i]];
     }
   }
   const btn = document.getElementById('btn-solve-3d');
