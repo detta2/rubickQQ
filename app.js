@@ -507,6 +507,18 @@ document.getElementById('btn-solve-3d').addEventListener('click', () => {
       const cube = Cube.fromString(kStr);
       const sol = cube.solve();
       solutionMoves3d = sol.split(' ').filter(s => s.length > 0);
+      // Verify: apply solution to a copy of the state, must end up solved.
+      // If not, the painted state was physically impossible -> reject it.
+      const saved = cubeState.map(f => f.slice());
+      for (const mv of solutionMoves3d) applyMoveToState(mv);
+      const reallySolved = cubeState.every(f => f.every(s => s === f[4]));
+      cubeState = saved;
+      if (!reallySolved) {
+        alert('Warnanya nggak valid (kombinasi mustahil di kubus asli).\nCek lagi cat warnanya, atau tekan Reset lalu acak pakai drag.');
+        btn.textContent = origText;
+        btn.disabled = false;
+        return;
+      }
       currentMoveIdx3d = -1;
       displaySolution3d();
       document.getElementById('solution3d').style.display = 'block';
