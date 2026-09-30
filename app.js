@@ -512,12 +512,32 @@ document.getElementById('btn-back-paint').addEventListener('click', () => {
   if (!h) return;
   if (h.type === 'paint') {
     cubeState[h.face][h.idx] = h.prev;
+  } else if (h.type === 'snapshot') {
+    cubeState = h.state.map(f => f.slice());
   } else {
     applyMoveToState(invertMove3d(h.move));
   }
   buildPaintCube();
   buildNet();
   hideSolution3d();
+});
+
+// Shuffle: acak kubus 25 langkah (satu entri undo)
+document.getElementById('btn-shuffle-paint').addEventListener('click', () => {
+  if (isAnimatingPaint) return;
+  pushPaintHistory({ type: 'snapshot', state: cubeState.map(f => f.slice()) });
+  const faces = ['U', 'D', 'F', 'B', 'L', 'R'];
+  const mods = ['', "'", '2'];
+  let lastFace = '';
+  for (let i = 0; i < 25; i++) {
+    let f;
+    do { f = faces[Math.floor(Math.random() * 6)]; } while (f === lastFace);
+    lastFace = f;
+    applyMoveToState(f + mods[Math.floor(Math.random() * 3)]);
+  }
+  hideSolution3d();
+  buildPaintCube();
+  buildNet();
 });
 
 // Reset to plain white
