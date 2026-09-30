@@ -527,18 +527,72 @@ function initPaintScene() {
     requestAnimationFrame(animate);
     if (rendererPaint) rendererPaint.render(scenePaint, cameraPaint);
   })();
-  // Touch/mouse for rotate vs tap
+  // Drag-to-turn: drag on sticker turns layer, drag on background rotates camera, tap paints
   const el = rendererPaint.domElement;
+  const raycaster = new THREE.Raycaster();
+  let grabInfo = null;
+  
+  function getNDC(e) {
+    const rect = el.getBoundingClientRect();
+    return new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+  }
+  
+  function raycastCube(e) {
+    raycaster.setFromCamera(getNDC(e), cameraPaint);
+    const hits = raycaster.intersectObjects(cubiesPaint);
+    if (hits.length === 0) return null;
+    const hit = hits[0];
+    const matIndex = hit.face.materialIndex;
+    const info = hit.object.userData.faceInfo[matIndex];
+    if (!info) return null;
+    const normals = [
+      new THREE.Vector3(1,0,0), new THREE.Vector3(-1,0,0),
+      new THREE.Vector3(0,1,0), new THREE.Vector3(0,-1,0),
+      new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,-1)
+    ];
+    return { cubie: hit.object, normal: normals[matIndex], faceInfo: info, point: hit.point.clone() };
+  }
+  
+  function planeIntersect(e, planePoint, planeNormal) {
+    raycaster.setFromCamera(getNDC(e), cameraPaint);
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(planeNormal, planePoint);
+    const out = new THREE.Vector3();
+    return raycaster.ray.intersectPlane(plane, out) ? out : null;
+  }
+  
   el.addEventListener('pointerdown', e => {
-    isDraggingPaint = false;
+    const hit = raycastCube(e);
+    if (hit) {
+      grabInfo = { ...hit, turned: false,
+        startPlanePoint: planeIntersect(e, hit.point, hit.normal) };
+    } else {
+      grabInfo = null;
+    }
     dragStartPaint = { x: e.clientX, y: e.clientY };
+    isDraggingPaint = false;
   });
+  
   el.addEventListener('pointermove', e => {
     if (!dragStartPaint) return;
     const dx = e.clientX - dragStartPaint.x, dy = e.clientY - dragStartPaint.y;
-    if (Math.abs(dx) + Math.abs(dy) > 10) isDraggingPaint = true;
-    if (isDraggingPaint) {
-      // Rotate camera around cube
+    if (Math.abs(dx) + Math.abs(dy) > 8) isDraggingPaint = true;
+    
+    if (grabInfo && !grabInfo.turned && isDraggingPaint) {
+      const curPlanePoint = planeIntersect(e, grabInfo.point, grabInfo.normal);
+      if (curPlanePoint && grabInfo.startPlanePoint) {
+        const dragVec = curPlanePoint.clone().sub(grabInfo.startPlanePoint);
+        if (dragVec.length() > 0.35) {
+          const move = dragToMove(grabInfo, dragVec);
+          if (move) {
+            grabInfo.turned = true;
+            doPaintTurn(move);
+          }
+        }
+      }
+    } else if (!grabInfo && isDraggingPaint) {
       const angle = dx * 0.01;
       const x = cameraPaint.position.x, z = cameraPaint.position.z;
       cameraPaint.position.x = x * Math.cos(angle) - z * Math.sin(angle);
@@ -548,10 +602,79 @@ function initPaintScene() {
       dragStartPaint = { x: e.clientX, y: e.clientY };
     }
   });
+  
   el.addEventListener('pointerup', e => {
-    if (!isDraggingPaint && dragStartPaint) handlePaintTap(e);
+    if (grabInfo && !grabInfo.turned && !isDraggingPaint) {
+      handlePaintTap(e);
+    }
+    grabInfo = null;
     dragStartPaint = null;
+    isDraggingPaint = false;
   });
+}
+
+function dragToMove(grab, dragVec) {
+  const N = grab.normal;
+  const D = dragVec.clone().normalize();
+  const A = new THREE.Vector3().crossVectors(N, D);
+  if (A.length() < 0.3) return null;
+  A.normalize();
+  const ax = Math.abs(A.x), ay = Math.abs(A.y), az = Math.abs(A.z);
+  let axis, axisSign, slice;
+  const pos = grab.cubie.position;
+  if (ax >= ay && ax >= az) { axis = 'x'; axisSign = Math.sign(A.x); slice = Math.round(pos.x); }
+  else if (ay >= ax && ay >= az) { axis = 'y'; axisSign = Math.sign(A.y); slice = Math.round(pos.y); }
+  else { axis = 'z'; axisSign = Math.sign(A.z); slice = Math.round(pos.z); }
+  if (slice === 0) slice = axisSign > 0 ? 1 : -1;
+  let base, isPrime;
+  if (axis === 'x') { base = slice === 1 ? 'R' : 'L'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
+  else if (axis === 'y') { base = slice === 1 ? 'U' : 'D'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
+  else { base = slice === 1 ? 'F' : 'B'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
+  return isPrime ? base + "'" : base;
+}
+
+function doPaintTurn(move) {
+  applyMoveToState(move);
+  animateMoveOnScene(move, scenePaint, cubiesPaint, cameraPaint, () => {
+    buildPaintCube();
+    buildNet();
+  });
+}
+
+function animateMoveOnScene(move, scene, cubies, camera, callback) {
+  const p = parseMove3d(move);
+  if (!p) { if (callback) callback(); return; }
+  const sliceCubies = cubies.filter(c => {
+    const pos = c.position;
+    if (p.axis === 'x') return Math.round(pos.x) === p.slice;
+    if (p.axis === 'y') return Math.round(pos.y) === p.slice;
+    return Math.round(pos.z) === p.slice;
+  });
+  const pivot = new THREE.Group();
+  scene.add(pivot);
+  sliceCubies.forEach(c => pivot.attach(c));
+  const duration = 250;
+  const start = Date.now();
+  (function step() {
+    const t = Math.min((Date.now() - start) / duration, 1);
+    const eased = t < 0.5 ? 2*t*t : -1 + (4-2*t)*t;
+    pivot.rotation[p.axis] = p.angle * eased;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      sliceCubies.forEach(c => {
+        scene.attach(c);
+        c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+        c.rotation.set(
+          Math.round(c.rotation.x / (Math.PI/2)) * (Math.PI/2),
+          Math.round(c.rotation.y / (Math.PI/2)) * (Math.PI/2),
+          Math.round(c.rotation.z / (Math.PI/2)) * (Math.PI/2)
+        );
+      });
+      scene.remove(pivot);
+      if (callback) callback();
+    }
+  })();
 }
 
 function getPaintStickerColor(face, r, c) {
