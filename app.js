@@ -536,11 +536,20 @@ document.getElementById('btn-shuffle-paint').addEventListener('click', () => {
   buildPaintCube();
 });
 
-// Reset to plain white
+// Reset: kubus kembali solved seperti semula
 document.getElementById('btn-reset-paint').addEventListener('click', () => {
   if (isAnimatingPaint) return;
+  pushPaintHistory({ type: 'snapshot', state: cubeState.map(f => f.slice()) });
+  initCubeState(); // solved
+  hideSolution3d();
+  buildPaintCube();
+});
+
+// Blank: semua stiker putih (kanvas untuk melukis)
+document.getElementById('btn-blank-paint').addEventListener('click', () => {
+  if (isAnimatingPaint) return;
+  pushPaintHistory({ type: 'snapshot', state: cubeState.map(f => f.slice()) });
   for (let f = 0; f < 6; f++) cubeState[f] = new Array(9).fill(0); // all white
-  paintHistory = []; updateBackBtn();
   hideSolution3d();
   buildPaintCube();
 });
