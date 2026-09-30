@@ -1,11 +1,18 @@
-// app.js — rubickQQ 3x3 (3D only)
+// app.js — rubickQQ 3x3
 // State: 6 faces x 9 stickers, color indices 0-5 (U,R,F,D,L,B = white,red,green,yellow,orange,blue)
 
 const COLORS = ['#ffffff', '#ff0000', '#00cc00', '#ffff00', '#ff8800', '#0000ff'];
 const COLOR_NAMES = ['Putih', 'Merah', 'Hijau', 'Kuning', 'Oranye', 'Biru'];
+const FACE_NAMES = ['PUTIH (atas)', 'MERAH (kanan)', 'HIJAU (depan)', 'KUNING (bawah)', 'ORANYE (kiri)', 'BIRU (belakang)'];
 // Face order for cubejs: U,R,F,D,L,B
 
 let cubeState = [];
+let selectedColor = 0;
+let currentScanFace = 0;
+let solutionMoves = [];
+let currentMoveIndex = 0;
+let isPlaying = false;
+let playTimer = null;
 
 function initCubeState() {
   cubeState = [];
@@ -14,9 +21,441 @@ function initCubeState() {
   }
 }
 
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Manual editor
+function buildPalette() {
+  const pal = document.getElementById('palette');
+  pal.innerHTML = '';
+  COLORS.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'color' + (i === selectedColor ? ' selected' : '');
+    d.style.background = c;
+    d.title = COLOR_NAMES[i];
+    d.addEventListener('click', () => {
+      selectedColor = i;
+      buildPalette();
+    });
+    pal.appendChild(d);
+  });
+}
+
+function buildNet() {
+  const net = document.getElementById('net');
+  net.innerHTML = '';
+  // Layout:     [U]
+  //         [L][F][R][B]
+  //             [D]
+  const layout = [
+    [null, 0, null, null],
+    [4, 2, 1, 5],
+    [null, 3, null, null],
+  ];
+  layout.forEach(row => {
+    row.forEach(f => {
+      const cell = document.createElement('div');
+      if (f === null) {
+        cell.style.visibility = 'hidden';
+      } else {
+        cell.className = 'face-grid';
+        for (let i = 0; i < 9; i++) {
+          const s = document.createElement('div');
+          s.className = 'sticker';
+          s.style.background = COLORS[cubeState[f][i]];
+          s.dataset.face = f;
+          s.dataset.idx = i;
+          s.addEventListener('click', () => {
+            cubeState[f][i] = selectedColor;
+            s.style.background = COLORS[selectedColor];
+          });
+          cell.appendChild(s);
+        }
+      }
+      net.appendChild(cell);
+    });
+  });
+}
+
+document.getElementById('btn-reset-manual').addEventListener('click', () => {
+  initCubeState();
+  buildNet();
+});
+
+// Camera
+let videoStream = null;
+document.getElementById('btn-start-cam').addEventListener('click', async () => {
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = videoStream;
+    drawOverlay();
+  } catch (e) {
+    alert('Kamera tidak bisa diakses: ' + e.message);
+  }
+});
+
+function drawOverlay() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas-overlay');
+  const ctx = canvas.getContext('2d');
+  function loop() {
+    if (video.videoWidth) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const w = canvas.width, h = canvas.height;
+      const size = Math.min(w, h) * 0.7;
+      const x0 = (w - size) / 2, y0 = (h - size) / 2;
+      const cell = size / 3;
+      ctx.strokeStyle = '#f2b13d';
+      ctx.lineWidth = 3;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          ctx.strokeRect(x0 + c * cell, y0 + r * cell, cell, cell);
+        }
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+document.getElementById('btn-capture').addEventListener('click', () => {
+  const video = document.getElementById('video');
+  if (!video.videoWidth) {
+    alert('Nyalakan kamera dulu!');
+    return;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  
+  const w = canvas.width, h = canvas.height;
+  const size = Math.min(w, h) * 0.7;
+  const x0 = (w - size) / 2, y0 = (h - size) / 2;
+  const cell = size / 3;
+  
+  const faceColors = [];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      // Sample center of cell
+      const sx = x0 + c * cell + cell / 2;
+      const sy = y0 + r * cell + cell / 2;
+      const data = ctx.getImageData(sx - 5, sy - 5, 10, 10).data;
+      let rr = 0, gg = 0, bb = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        rr += data[i]; gg += data[i+1]; bb += data[i+2];
+      }
+      const n = data.length / 4;
+      rr /= n; gg /= n; bb /= n;
+      faceColors.push(closestColor(rr, gg, bb));
+    }
+  }
+  
+  cubeState[currentScanFace] = faceColors;
+  currentScanFace++;
+  if (currentScanFace >= 6) {
+    currentScanFace = 0;
+    alert('Semua sisi sudah di-scan! Buka tab Solve.');
+    document.querySelector('[data-tab="solve"]').click();
+  } else {
+    document.getElementById('face-name').textContent = FACE_NAMES[currentScanFace];
+  }
+  buildNet(); // update manual editor too
+});
+
+function closestColor(r, g, b) {
+  // Simple RGB distance to 6 cube colors
+  const targets = [
+    [255,255,255], // white
+    [255,0,0],     // red
+    [0,200,0],     // green
+    [255,255,0],   // yellow
+    [255,136,0],   // orange
+    [0,0,255],     // blue
+  ];
+  let best = 0, bestDist = Infinity;
+  targets.forEach((t, i) => {
+    const d = (r-t[0])**2 + (g-t[1])**2 + (b-t[2])**2;
+    if (d < bestDist) { bestDist = d; best = i; }
+  });
+  return best;
+}
+
+// Solver
+document.getElementById('btn-solve').addEventListener('click', () => {
+  try {
+    // Cek apakah kubus sudah solved (setiap face 9 stiker = warna face)
+    let isSolved = true;
+    for (let f = 0; f < 6 && isSolved; f++) {
+      for (let i = 0; i < 9; i++) {
+        if (cubeState[f][i] !== f) { isSolved = false; break; }
+      }
+    }
+    if (isSolved) {
+      solutionMoves = [];
+      const movesDiv = document.getElementById('moves');
+      movesDiv.innerHTML = '<div style="color:#4caf50;font-weight:700;padding:12px">✅ Kubus sudah solved! Tidak ada langkah.</div>';
+      document.getElementById('solution').style.display = 'block';
+      currentMoveIndex = 0;
+      return;
+    }
+    // Convert cubeState to facelet string (U,R,F,D,L,B order)
+    const colorLetter = ['U', 'R', 'F', 'D', 'L', 'B'];
+    let facelet = '';
+    for (let f = 0; f < 6; f++) {
+      for (let i = 0; i < 9; i++) {
+        facelet += colorLetter[cubeState[f][i]];
+      }
+    }
+    Cube.initSolver();
+    const cube = Cube.fromString(facelet);
+    const solution = cube.solve();
+    solutionMoves = solution.split(' ').filter(s => s);
+    
+    // Display
+    const movesDiv = document.getElementById('moves');
+    movesDiv.innerHTML = '';
+    solutionMoves.forEach((m, i) => {
+      const d = document.createElement('div');
+      d.className = 'move';
+      d.textContent = m;
+      d.id = 'move-' + i;
+      movesDiv.appendChild(d);
+    });
+    document.getElementById('solution').style.display = 'block';
+    currentMoveIndex = 0;
+    updateMoveHighlight();
+    buildCube3D();
+  } catch (e) {
+    alert('Gagal solve: ' + e.message + '\nPastikan warna sudah benar (9 stiker per warna).');
+  }
+});
+
+function updateMoveHighlight() {
+  document.querySelectorAll('.move').forEach((d, i) => {
+    d.classList.remove('done', 'current');
+    if (i < currentMoveIndex) d.classList.add('done');
+    if (i === currentMoveIndex) d.classList.add('current');
+  });
+}
+
+// 3D Cube with Three.js
+let scene3d = null, camera3d = null, renderer3d = null, cubies3d = [];
+let isAnimating3d = false;
+
+function init3DScene() {
+  const container = document.getElementById('cube3d');
+  container.innerHTML = '';
+  const w = 280, h = 280;
+  scene3d = new THREE.Scene();
+  scene3d.background = new THREE.Color(0x0f0f1a);
+  camera3d = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
+  camera3d.position.set(4.5, 4, 5.5);
+  camera3d.lookAt(0, 0, 0);
+  renderer3d = new THREE.WebGLRenderer({ antialias: true });
+  renderer3d.setSize(w, h);
+  container.appendChild(renderer3d.domElement);
+  // Lights
+  scene3d.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+  dir.position.set(5, 10, 7);
+  scene3d.add(dir);
+  // Animation loop
+  (function animate() {
+    requestAnimationFrame(animate);
+    if (renderer3d) renderer3d.render(scene3d, camera3d);
+  })();
+}
+
+function getStickerColor(face, r, c) {
+  return COLORS[cubeState[face][r*3 + c]];
+}
+
+function buildCube3D() {
+  if (!scene3d) init3DScene();
+  // Clear old cubies
+  cubies3d.forEach(c => scene3d.remove(c));
+  cubies3d = [];
+  const geo = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+  // For each cubie position (x,y,z in -1,0,1)
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        const materials = [];
+        // Order: +X, -X, +Y, -Y, +Z, -Z
+        // +X (R face)
+        if (x === 1) {
+          const r = 1 - y, c = 1 - z;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(1, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // -X (L face)
+        if (x === -1) {
+          const r = 1 - y, c = z + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(4, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // +Y (U face)
+        if (y === 1) {
+          const r = z + 1, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(0, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // -Y (D face)
+        if (y === -1) {
+          const r = 1 - z, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(3, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // +Z (F face)
+        if (z === 1) {
+          const r = 1 - y, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(2, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // -Z (B face)
+        if (z === -1) {
+          const r = 1 - y, c = 1 - x;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(5, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        const cubie = new THREE.Mesh(geo, materials);
+        cubie.position.set(x, y, z);
+        cubie.userData.home = { x, y, z };
+        scene3d.add(cubie);
+        cubies3d.push(cubie);
+      }
+    }
+  }
+}
+
+function parseMove3d(move) {
+  // Returns {axis: 'x'|'y'|'z', slice: -1|1, angle: radians}
+  const face = move[0];
+  const mod = move.slice(1); // '', "'", '2'
+  let axis, slice, baseAngle;
+  if (face === 'R') { axis = 'x'; slice = 1; baseAngle = -Math.PI/2; }
+  else if (face === 'L') { axis = 'x'; slice = -1; baseAngle = Math.PI/2; }
+  else if (face === 'U') { axis = 'y'; slice = 1; baseAngle = -Math.PI/2; }
+  else if (face === 'D') { axis = 'y'; slice = -1; baseAngle = Math.PI/2; }
+  else if (face === 'F') { axis = 'z'; slice = 1; baseAngle = -Math.PI/2; }
+  else if (face === 'B') { axis = 'z'; slice = -1; baseAngle = Math.PI/2; }
+  else return null;
+  let angle = baseAngle;
+  if (mod === "'") angle = -angle;
+  else if (mod === '2') angle = Math.PI;
+  return { axis, slice, angle };
+}
+
+function animateMove3d(move, callback) {
+  if (isAnimating3d) { if (callback) callback(); return; }
+  const p = parseMove3d(move);
+  if (!p) { if (callback) callback(); return; }
+  isAnimating3d = true;
+  // Find cubies in slice
+  const sliceCubies = cubies3d.filter(c => {
+    const pos = c.position;
+    if (p.axis === 'x') return Math.round(pos.x) === p.slice;
+    if (p.axis === 'y') return Math.round(pos.y) === p.slice;
+    return Math.round(pos.z) === p.slice;
+  });
+  // Create pivot group
+  const pivot = new THREE.Group();
+  scene3d.add(pivot);
+  sliceCubies.forEach(c => pivot.attach(c));
+  // Animate
+  const duration = 300;
+  const start = Date.now();
+  const startRot = 0;
+  (function step() {
+    const t = Math.min((Date.now() - start) / duration, 1);
+    const eased = t < 0.5 ? 2*t*t : -1 + (4-2*t)*t; // easeInOut
+    const rot = startRot + p.angle * eased;
+    pivot.rotation[p.axis] = rot;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      // Detach, preserve transform
+      const inv = new THREE.Matrix4().copy(pivot.matrix).invert();
+      sliceCubies.forEach(c => {
+        scene3d.attach(c);
+        // Snap position to grid
+        c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+        // Snap rotation
+        c.rotation.set(
+          Math.round(c.rotation.x / (Math.PI/2)) * (Math.PI/2),
+          Math.round(c.rotation.y / (Math.PI/2)) * (Math.PI/2),
+          Math.round(c.rotation.z / (Math.PI/2)) * (Math.PI/2)
+        );
+      });
+      scene3d.remove(pivot);
+      isAnimating3d = false;
+      if (callback) callback();
+    }
+  })();
+}
+
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (currentMoveIndex < solutionMoves.length && !isAnimating3d) {
+    const move = solutionMoves[currentMoveIndex];
+    animateMove3d(move, () => {
+      currentMoveIndex++;
+      updateMoveHighlight();
+    });
+  }
+});
+
+document.getElementById('btn-prev').addEventListener('click', () => {
+  if (currentMoveIndex > 0 && !isAnimating3d) {
+    // For prev, we need to invert the last move
+    currentMoveIndex--;
+    const move = solutionMoves[currentMoveIndex];
+    const inv = move.endsWith("'") ? move[0] : move.endsWith('2') ? move : move + "'";
+    animateMove3d(inv, () => {
+      updateMoveHighlight();
+    });
+  }
+});
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  const btn = document.getElementById('btn-play');
+  if (isPlaying) {
+    clearInterval(playTimer);
+    isPlaying = false;
+    btn.textContent = '▶ Putar';
+  } else {
+    isPlaying = true;
+    btn.textContent = '⏸ Jeda';
+    const stepPlay = () => {
+      if (!isPlaying) return;
+      if (currentMoveIndex >= solutionMoves.length) {
+        isPlaying = false;
+        btn.textContent = '▶ Putar';
+        return;
+      }
+      const move = solutionMoves[currentMoveIndex];
+      animateMove3d(move, () => {
+        currentMoveIndex++;
+        updateMoveHighlight();
+        if (isPlaying) setTimeout(stepPlay, 200);
+      });
+    };
+    stepPlay();
+  }
+});
+
 // Init
 initCubeState();
+buildPalette();
+buildNet();
 
+// ===== LOGICAL MOVE APPLICATION (for paint mode turns) =====
 function rotFaceCW(s){return [s[6],s[3],s[0],s[7],s[4],s[1],s[8],s[5],s[2]];}
 function applyMoveToState(move){
   const face=move[0], mod=move.slice(1);
@@ -200,24 +639,6 @@ function doPaintTurn(move) {
     buildPaintCube();
     buildNet();
   });
-}
-
-function parseMove3d(move) {
-  // Returns {axis: 'x'|'y'|'z', slice: -1|1, angle: radians}
-  const face = move[0];
-  const mod = move.slice(1); // '', "'", '2'
-  let axis, slice, baseAngle;
-  if (face === 'R') { axis = 'x'; slice = 1; baseAngle = -Math.PI/2; }
-  else if (face === 'L') { axis = 'x'; slice = -1; baseAngle = Math.PI/2; }
-  else if (face === 'U') { axis = 'y'; slice = 1; baseAngle = -Math.PI/2; }
-  else if (face === 'D') { axis = 'y'; slice = -1; baseAngle = Math.PI/2; }
-  else if (face === 'F') { axis = 'z'; slice = 1; baseAngle = -Math.PI/2; }
-  else if (face === 'B') { axis = 'z'; slice = -1; baseAngle = Math.PI/2; }
-  else return null;
-  let angle = baseAngle;
-  if (mod === "'") angle = -angle;
-  else if (mod === '2') angle = Math.PI;
-  return { axis, slice, angle };
 }
 
 function animateMoveOnScene(move, scene, cubies, camera, callback) {
