@@ -92,6 +92,7 @@ function initPaintScene() {
   const el = rendererPaint.domElement;
   const raycaster = new THREE.Raycaster();
   let grabInfo = null;
+  let activePointerId = null;
   
   function getNDC(e) {
     const rect = el.getBoundingClientRect();
@@ -125,6 +126,8 @@ function initPaintScene() {
   }
   
   el.addEventListener('pointerdown', e => {
+    if (activePointerId !== null) return; // ignore second finger
+    activePointerId = e.pointerId;
     e.preventDefault(); // stop page scroll on mobile
     const hit = raycastCube(e);
     if (hit) {
@@ -138,6 +141,7 @@ function initPaintScene() {
   });
   
   el.addEventListener('pointermove', e => {
+    if (e.pointerId !== activePointerId) return;
     if (!dragStartPaint) return;
     const dx = e.clientX - dragStartPaint.x, dy = e.clientY - dragStartPaint.y;
     if (Math.abs(dx) + Math.abs(dy) > 8) isDraggingPaint = true;
@@ -160,12 +164,21 @@ function initPaintScene() {
   });
   
   el.addEventListener('pointerup', e => {
+    if (e.pointerId !== activePointerId) return;
     if (grabInfo && !grabInfo.turned && !isDraggingPaint) {
       handlePaintTap(e);
     }
     grabInfo = null;
     dragStartPaint = null;
     isDraggingPaint = false;
+    activePointerId = null;
+  });
+  el.addEventListener('pointercancel', e => {
+    if (e.pointerId !== activePointerId) return;
+    grabInfo = null;
+    dragStartPaint = null;
+    isDraggingPaint = false;
+    activePointerId = null;
   });
 }
 
