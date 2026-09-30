@@ -320,56 +320,105 @@
   }
 
   // ============ MAIN SOLVER ============
+  // Helper: cek apakah state solved (4x4)
+  function isSolvedState(s) {
+    for (let f = 0; f < 6; f++) for (let i = 0; i < 16; i++) if (s[f][i] !== f) return false;
+    return true;
+  }
+  // Helper: hitung dedge yang paired
+  function countPaired(s) {
+    let n = 0;
+    for (let si = 0; si < 12; si++) {
+      const sl = SLOTS[si];
+      const w1 = [sl[0], sl[2]], w2 = [sl[1], sl[3]];
+      const c1 = w1.map(([f,r,c]) => s[f][r*4+c]).sort((a,b)=>a-b).join(',');
+      const c2 = w2.map(([f,r,c]) => s[f][r*4+c]).sort((a,b)=>a-b).join(',');
+      if (c1 === c2) n++;
+    }
+    return n;
+  }
+
   function solve4x4(state) {
-    const s = state.map(f => f.slice());
-    const phases = [];
-    let moves = [];
+    const orig = state.map(f => f.slice());
+    
+    // Coba hingga 4 kombinasi parity: [OLL?, PLL?]
+    const parityCombos = [[false,false],[true,false],[false,true],[true,true]];
+    // Deteksi awal untuk urutan coba (yang terdeteksi dulu)
+    const sDetect = orig.map(f => f.slice());
+    const cm0 = solveCentersNew(sDetect);
+    if (!cm0) return { error: 'centers gagal' };
+    pairAll(sDetect);
+    const detOLL = countFlipped(sDetect) % 2 === 1;
+    const detPLL = dedgePermParity(sDetect) === 1;
+    // Urutkan: kombinasi terdeteksi dulu, lalu yang lain
+    parityCombos.sort((a,b) => {
+      const sa = (a[0]===detOLL?0:1)+(a[1]===detPLL?0:1);
+      const sb = (b[0]===detOLL?0:1)+(b[1]===detPLL?0:1);
+      return sa-sb;
+    });
 
-    // Phase 1: Centers
-    const cm = solveCentersNew(s);
-    if (!cm) return { error: 'centers gagal' };
-    phases.push({ name: 'centers', moves: cm });
-    moves = moves.concat(cm);
+    for (const [useOLL, usePLL] of parityCombos) {
+      const s = orig.map(f => f.slice());
+      const phases = [];
+      let moves = [];
 
-    // Phase 2: Pair edges
-    const pm = pairAll(s);
-    phases.push({ name: 'edges', moves: pm });
-    moves = moves.concat(pm);
+      // Phase 1: Centers
+      const cm = solveCentersNew(s);
+      if (!cm) continue;
+      phases.push({ name: 'centers', moves: cm });
+      moves = moves.concat(cm);
 
-    // Phase 3: Parity
-    const parityMoves = [];
-    if (countFlipped(s) % 2 === 1) {
-      for (const m of OLL_ALG) { applyMove4(s, m); parityMoves.push(m); }
+      // Phase 2: Pair edges
+      const pm = pairAll(s);
+      // Verifikasi pairing 12/12
+      if (countPaired(s) !== 12) continue;
+      phases.push({ name: 'edges', moves: pm });
+      moves = moves.concat(pm);
+
+      // Phase 3: Parity (coba kombinasi)
+      const parityMoves = [];
+      if (useOLL) {
+        for (const m of OLL_ALG) { applyMove4(s, m); parityMoves.push(m); }
+      }
+      if (usePLL) {
+        for (const m of PLL_ALG) { applyMove4(s, m); parityMoves.push(m); }
+      }
+      if (parityMoves.length > 0) phases.push({ name: 'parity', moves: parityMoves });
+      moves = moves.concat(parityMoves);
+
+      // Phase 4: 3x3 stage via Kociemba
+      const s3 = to3x3(s);
+      const faceOrder = ['U','R','F','D','L','B'];
+      const colorToFace = {};
+      for (let f = 0; f < 6; f++) colorToFace[s3[f][4]] = faceOrder[f];
+      let kStr = '';
+      for (let f = 0; f < 6; f++) for (let i = 0; i < 9; i++) {
+        const cf = colorToFace[s3[f][i]];
+        if (!cf) { kStr = null; break; }
+        kStr += cf;
+      }
+      if (!kStr) continue;
+      let cubeMoves = [];
+      try {
+        if (typeof Cube === 'undefined') throw new Error('Kociemba belum siap');
+        const cube = Cube.fromString(kStr);
+        const sol = cube.solve();
+        cubeMoves = sol.trim().split(/\s+/).filter(x => x.length > 0);
+      } catch (e) {
+        continue; // coba kombinasi parity lain
+      }
+      phases.push({ name: 'cube', moves: cubeMoves });
+      const allMoves = moves.concat(cubeMoves);
+
+      // VERIFIKASI INTERNAL: apply semua moves ke orig, harus solved
+      const t = orig.map(f => f.slice());
+      for (const mv of allMoves) applyMove4(t, mv);
+      if (isSolvedState(t)) {
+        return { moves: allMoves, phases };
+      }
+      // Jika gagal, coba kombinasi parity berikutnya
     }
-    if (dedgePermParity(s) === 1) {
-      for (const m of PLL_ALG) { applyMove4(s, m); parityMoves.push(m); }
-    }
-    if (parityMoves.length > 0) phases.push({ name: 'parity', moves: parityMoves });
-    moves = moves.concat(parityMoves);
-
-    // Phase 4: 3x3 stage via Kociemba
-    const s3 = to3x3(s);
-    // Map colors to faces via centers (like 3x3 solver)
-    const faceOrder = ['U','R','F','D','L','B'];
-    const colorToFace = {};
-    for (let f = 0; f < 6; f++) colorToFace[s3[f][4]] = faceOrder[f];
-    let kStr = '';
-    for (let f = 0; f < 6; f++) for (let i = 0; i < 9; i++) kStr += colorToFace[s3[f][i]];
-    let cubeMoves = [];
-    try {
-      if (typeof Cube === 'undefined') throw new Error('Kociemba belum siap');
-      const cube = Cube.fromString(kStr);
-      const sol = cube.solve();
-      cubeMoves = sol.trim().split(/\s+/).filter(x => x.length > 0);
-    } catch (e) {
-      return { error: '3x3 gagal: ' + e.message };
-    }
-    phases.push({ name: 'cube', moves: cubeMoves });
-    moves = moves.concat(cubeMoves);
-    // Apply 3x3 moves to 4x4 (as outer moves) for verification
-    for (const m of cubeMoves) applyMove4(s, m);
-
-    return { moves, phases };
+    return { error: 'solver tidak menemukan solusi (coba shuffle ulang)' };
   }
 
   global.Solve4 = { solve4x4 };
