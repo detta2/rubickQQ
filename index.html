@@ -76,6 +76,7 @@
 <div class="tabs">
   <button class="tab active" data-tab="camera">📷 Kamera</button>
   <button class="tab" data-tab="manual">✏️ Manual</button>
+  <button class="tab" data-tab="paint3d">🎨 3D</button>
   <button class="tab" data-tab="solve">🧊 Solve</button>
 </div>
 
@@ -103,6 +104,14 @@
 </div>
 
 <!-- SOLVE PANEL -->
+<div class="panel" id="panel-paint3d">
+  <p style="color:#888;font-size:13px;text-align:center;margin:8px 0;">Tap stiker di kubus 3D untuk mewarnai.<br>Geser untuk memutar kubus.</p>
+  <div class="palette" id="palette3d" style="display:flex;gap:8px;justify-content:center;margin:12px 0;"></div>
+  <div class="cube-scene"><div class="cube3d" id="cube3d-paint" style="width:100%;height:300px;position:relative;"></div></div>
+  <button class="btn btn-secondary" id="btn-reset-paint">⚪ Reset Putih Polos</button>
+  <button class="btn btn-primary" id="btn-paint-to-solve">🧊 Lanjut ke Solve →</button>
+</div>
+
 <div class="panel" id="panel-solve">
   <button class="btn btn-primary" id="btn-solve">🧮 Hitung Solusi</button>
   <div id="solution" style="display:none">

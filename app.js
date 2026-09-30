@@ -454,3 +454,177 @@ document.getElementById('btn-play').addEventListener('click', () => {
 initCubeState();
 buildPalette();
 buildNet();
+
+// ===== 3D PAINT MODE =====
+let scenePaint = null, cameraPaint = null, rendererPaint = null;
+let cubiesPaint = [];
+let paintColor = 0;
+let isDraggingPaint = false;
+let dragStartPaint = null;
+
+function initPaintScene() {
+  const container = document.getElementById('cube3d-paint');
+  if (!container) return;
+  container.innerHTML = '';
+  const w = container.clientWidth || 320, h = 300;
+  scenePaint = new THREE.Scene();
+  scenePaint.background = new THREE.Color(0x0f0f1a);
+  cameraPaint = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
+  cameraPaint.position.set(4.5, 4, 5.5);
+  cameraPaint.lookAt(0, 0, 0);
+  rendererPaint = new THREE.WebGLRenderer({ antialias: true });
+  rendererPaint.setSize(w, h);
+  container.appendChild(rendererPaint.domElement);
+  scenePaint.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+  dir.position.set(5, 10, 7);
+  scenePaint.add(dir);
+  (function animate() {
+    requestAnimationFrame(animate);
+    if (rendererPaint) rendererPaint.render(scenePaint, cameraPaint);
+  })();
+  // Touch/mouse for rotate vs tap
+  const el = rendererPaint.domElement;
+  el.addEventListener('pointerdown', e => {
+    isDraggingPaint = false;
+    dragStartPaint = { x: e.clientX, y: e.clientY };
+  });
+  el.addEventListener('pointermove', e => {
+    if (!dragStartPaint) return;
+    const dx = e.clientX - dragStartPaint.x, dy = e.clientY - dragStartPaint.y;
+    if (Math.abs(dx) + Math.abs(dy) > 10) isDraggingPaint = true;
+    if (isDraggingPaint) {
+      // Rotate camera around cube
+      const angle = dx * 0.01;
+      const x = cameraPaint.position.x, z = cameraPaint.position.z;
+      cameraPaint.position.x = x * Math.cos(angle) - z * Math.sin(angle);
+      cameraPaint.position.z = x * Math.sin(angle) + z * Math.cos(angle);
+      cameraPaint.position.y = Math.max(-8, Math.min(8, cameraPaint.position.y - dy * 0.02));
+      cameraPaint.lookAt(0, 0, 0);
+      dragStartPaint = { x: e.clientX, y: e.clientY };
+    }
+  });
+  el.addEventListener('pointerup', e => {
+    if (!isDraggingPaint && dragStartPaint) handlePaintTap(e);
+    dragStartPaint = null;
+  });
+}
+
+function getPaintStickerColor(face, r, c) {
+  return COLORS[cubeState[face][r*3 + c]];
+}
+
+function buildPaintCube() {
+  if (!scenePaint) initPaintScene();
+  if (!scenePaint) return;
+  cubiesPaint.forEach(c => scenePaint.remove(c));
+  cubiesPaint = [];
+  const geo = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        const materials = [];
+        const faceInfo = []; // per material index: {face, r, c} or null
+        // +X (R=1)
+        if (x === 1) {
+          const r = 1 - y, c = 1 - z;
+          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(1, r, c) }));
+          faceInfo.push({ face: 1, r, c });
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        // -X (L=4)
+        if (x === -1) {
+          const r = 1 - y, c = z + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(4, r, c) }));
+          faceInfo.push({ face: 4, r, c });
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        // +Y (U=0)
+        if (y === 1) {
+          const r = z + 1, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(0, r, c) }));
+          faceInfo.push({ face: 0, r, c });
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        // -Y (D=3)
+        if (y === -1) {
+          const r = 1 - z, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(3, r, c) }));
+          faceInfo.push({ face: 3, r, c });
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        // +Z (F=2)
+        if (z === 1) {
+          const r = 1 - y, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(2, r, c) }));
+          faceInfo.push({ face: 2, r, c });
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        // -Z (B=5)
+        if (z === -1) {
+          const r = 1 - y, c = 1 - x;
+          materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(5, r, c) }));
+          faceInfo.push({ face: 5, r, c });
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        const cubie = new THREE.Mesh(geo, materials);
+        cubie.position.set(x, y, z);
+        cubie.userData.faceInfo = faceInfo;
+        scenePaint.add(cubie);
+        cubiesPaint.push(cubie);
+      }
+    }
+  }
+}
+
+function handlePaintTap(e) {
+  const el = rendererPaint.domElement;
+  const rect = el.getBoundingClientRect();
+  const mouse = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouse, cameraPaint);
+  const hits = raycaster.intersectObjects(cubiesPaint);
+  if (hits.length === 0) return;
+  const hit = hits[0];
+  const matIndex = hit.face.materialIndex;
+  const info = hit.object.userData.faceInfo[matIndex];
+  if (!info) return;
+  // Paint it
+  cubeState[info.face][info.r * 3 + info.c] = paintColor;
+  hit.object.material[matIndex].color.set(COLORS[paintColor]);
+  // Also refresh 2D net
+  buildNet();
+}
+
+function buildPaintPalette() {
+  const pal = document.getElementById('palette3d');
+  if (!pal) return;
+  pal.innerHTML = '';
+  COLORS.forEach((col, i) => {
+    const d = document.createElement('div');
+    d.style.cssText = `width:44px;height:44px;border-radius:50%;background:${col};cursor:pointer;border:3px solid ${i === paintColor ? '#f2b13d' : 'transparent'}`;
+    d.title = COLOR_NAMES[i];
+    d.addEventListener('click', () => {
+      paintColor = i;
+      buildPaintPalette();
+    });
+    pal.appendChild(d);
+  });
+}
+
+// Reset to plain white
+document.getElementById('btn-reset-paint').addEventListener('click', () => {
+  for (let f = 0; f < 6; f++) cubeState[f] = new Array(9).fill(0); // all white
+  buildPaintCube();
+  buildNet();
+});
+
+// Go to solve tab
+document.getElementById('btn-paint-to-solve').addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="solve"]').classList.add('active');
+  document.getElementById('panel-solve').classList.add('active');
+});
+
+// Init paint when tab opened
+document.querySelector('[data-tab="paint3d"]').addEventListener('click', () => {
+  setTimeout(() => { buildPaintPalette(); buildPaintCube(); }, 50);
+});
