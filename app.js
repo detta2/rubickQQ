@@ -21,11 +21,11 @@ function rotFaceCW(s){return [s[6],s[3],s[0],s[7],s[4],s[1],s[8],s[5],s[2]];}
 function applyMoveToState(move){
   const face=move[0], mod=move.slice(1);
   let times=mod==="'"?3:mod==="2"?2:1;
-  const fi={U:0,R:1,F:2,D:3,L:4,B:5}[face];
+  const fi={U:0,R:1,F:2,D:3,L:4,B:5,M:-1,E:-1,S:-1}[face];
   if(fi===undefined)return;
   for(let t=0;t<times;t++){
     const s=cubeState.map(f=>[...f]);
-    cubeState[fi]=rotFaceCW(s[fi]);
+    if(fi>=0) cubeState[fi]=rotFaceCW(s[fi]); // M/E/S have no face to rotate
     if(face==='U'){
       const tmp=[s[2][0],s[2][1],s[2][2]];
       for(let i=0;i<3;i++){cubeState[2][i]=s[1][i];cubeState[1][i]=s[5][i];cubeState[5][i]=s[4][i];cubeState[4][i]=tmp[i];}
@@ -56,6 +56,24 @@ function applyMoveToState(move){
       cubeState[1][2]=s[3][8];cubeState[1][5]=s[3][7];cubeState[1][8]=s[3][6];
       cubeState[3][8]=s[4][6];cubeState[3][7]=s[4][3];cubeState[3][6]=s[4][0];
       cubeState[4][6]=tmp[0];cubeState[4][3]=tmp[1];cubeState[4][0]=tmp[2];
+    }else if(face==='M'){
+      // Middle slice like L (x-axis)
+      const tmp=[s[0][1],s[0][4],s[0][7]];
+      cubeState[0][1]=s[5][7];cubeState[0][4]=s[5][4];cubeState[0][7]=s[5][1];
+      cubeState[5][7]=s[3][1];cubeState[5][4]=s[3][4];cubeState[5][1]=s[3][7];
+      cubeState[3][1]=s[2][1];cubeState[3][4]=s[2][4];cubeState[3][7]=s[2][7];
+      cubeState[2][1]=tmp[0];cubeState[2][4]=tmp[1];cubeState[2][7]=tmp[2];
+    }else if(face==='E'){
+      // Equatorial slice like D (y-axis)
+      const tmp=[s[2][3],s[2][4],s[2][5]];
+      for(let i=0;i<3;i++){cubeState[2][3+i]=s[4][3+i];cubeState[4][3+i]=s[5][3+i];cubeState[5][3+i]=s[1][3+i];cubeState[1][3+i]=tmp[i];}
+    }else if(face==='S'){
+      // Standing slice like F (z-axis)
+      const tmp=[s[0][3],s[0][4],s[0][5]];
+      cubeState[0][3]=s[4][7];cubeState[0][4]=s[4][4];cubeState[0][5]=s[4][1];
+      cubeState[4][7]=s[3][5];cubeState[4][4]=s[3][4];cubeState[4][1]=s[3][3];
+      cubeState[3][5]=s[1][7];cubeState[3][4]=s[1][4];cubeState[3][3]=s[1][1];
+      cubeState[1][7]=tmp[0];cubeState[1][4]=tmp[1];cubeState[1][1]=tmp[2];
     }
   }
 }
@@ -240,11 +258,17 @@ function dragToMove(grab, dxScreen, dyScreen) {
   if (ax >= ay && ax >= az) { axis = 'x'; axisSign = Math.sign(A.x); slice = Math.round(pos.x); }
   else if (ay >= ax && ay >= az) { axis = 'y'; axisSign = Math.sign(A.y); slice = Math.round(pos.y); }
   else { axis = 'z'; axisSign = Math.sign(A.z); slice = Math.round(pos.z); }
-  if (slice === 0) slice = axisSign > 0 ? 1 : -1;
   let base, isPrime;
-  if (axis === 'x') { base = slice === 1 ? 'R' : 'L'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
-  else if (axis === 'y') { base = slice === 1 ? 'U' : 'D'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
-  else { base = slice === 1 ? 'F' : 'B'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
+  if (slice === 0) {
+    // Middle slice turn
+    if (axis === 'x') { base = 'M'; isPrime = axisSign < 0; }
+    else if (axis === 'y') { base = 'E'; isPrime = axisSign < 0; }
+    else { base = 'S'; isPrime = axisSign > 0; }
+  } else {
+    if (axis === 'x') { base = slice === 1 ? 'R' : 'L'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
+    else if (axis === 'y') { base = slice === 1 ? 'U' : 'D'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
+    else { base = slice === 1 ? 'F' : 'B'; isPrime = slice === 1 ? axisSign > 0 : axisSign < 0; }
+  }
   return isPrime ? base + "'" : base;
 }
 
@@ -264,10 +288,13 @@ function parseMove3d(move) {
   let axis, slice, baseAngle;
   if (face === 'R') { axis = 'x'; slice = 1; baseAngle = -Math.PI/2; }
   else if (face === 'L') { axis = 'x'; slice = -1; baseAngle = Math.PI/2; }
+  else if (face === 'M') { axis = 'x'; slice = 0; baseAngle = Math.PI/2; }
   else if (face === 'U') { axis = 'y'; slice = 1; baseAngle = -Math.PI/2; }
   else if (face === 'D') { axis = 'y'; slice = -1; baseAngle = Math.PI/2; }
+  else if (face === 'E') { axis = 'y'; slice = 0; baseAngle = Math.PI/2; }
   else if (face === 'F') { axis = 'z'; slice = 1; baseAngle = -Math.PI/2; }
   else if (face === 'B') { axis = 'z'; slice = -1; baseAngle = Math.PI/2; }
+  else if (face === 'S') { axis = 'z'; slice = 0; baseAngle = -Math.PI/2; }
   else return null;
   let angle = baseAngle;
   if (mod === "'") angle = -angle;
