@@ -251,25 +251,175 @@ function updateMoveHighlight() {
   });
 }
 
-// 3D Cube (simple CSS-based)
-function buildCube3D() {
-  // For now, just show a placeholder. Full 3D playback is complex.
-  // We'll do a simple 2D net that updates with moves.
+// 3D Cube with Three.js
+let scene3d = null, camera3d = null, renderer3d = null, cubies3d = [];
+let isAnimating3d = false;
+
+function init3DScene() {
   const container = document.getElementById('cube3d');
-  container.innerHTML = '<p style="text-align:center;color:#888">3D playback segera hadir<br>Gunakan daftar langkah di atas</p>';
+  container.innerHTML = '';
+  const w = 280, h = 280;
+  scene3d = new THREE.Scene();
+  scene3d.background = new THREE.Color(0x0f0f1a);
+  camera3d = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
+  camera3d.position.set(4.5, 4, 5.5);
+  camera3d.lookAt(0, 0, 0);
+  renderer3d = new THREE.WebGLRenderer({ antialias: true });
+  renderer3d.setSize(w, h);
+  container.appendChild(renderer3d.domElement);
+  // Lights
+  scene3d.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+  dir.position.set(5, 10, 7);
+  scene3d.add(dir);
+  // Animation loop
+  (function animate() {
+    requestAnimationFrame(animate);
+    if (renderer3d) renderer3d.render(scene3d, camera3d);
+  })();
+}
+
+function getStickerColor(face, r, c) {
+  return COLORS[cubeState[face][r*3 + c]];
+}
+
+function buildCube3D() {
+  if (!scene3d) init3DScene();
+  // Clear old cubies
+  cubies3d.forEach(c => scene3d.remove(c));
+  cubies3d = [];
+  const geo = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+  // For each cubie position (x,y,z in -1,0,1)
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        const materials = [];
+        // Order: +X, -X, +Y, -Y, +Z, -Z
+        // +X (R face)
+        if (x === 1) {
+          const r = 1 - y, c = 1 - z;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(1, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // -X (L face)
+        if (x === -1) {
+          const r = 1 - y, c = z + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(4, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // +Y (U face)
+        if (y === 1) {
+          const r = z + 1, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(0, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // -Y (D face)
+        if (y === -1) {
+          const r = 1 - z, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(3, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // +Z (F face)
+        if (z === 1) {
+          const r = 1 - y, c = x + 1;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(2, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        // -Z (B face)
+        if (z === -1) {
+          const r = 1 - y, c = 1 - x;
+          materials.push(new THREE.MeshLambertMaterial({ color: getStickerColor(5, r, c) }));
+        } else materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 }));
+        const cubie = new THREE.Mesh(geo, materials);
+        cubie.position.set(x, y, z);
+        cubie.userData.home = { x, y, z };
+        scene3d.add(cubie);
+        cubies3d.push(cubie);
+      }
+    }
+  }
+}
+
+function parseMove3d(move) {
+  // Returns {axis: 'x'|'y'|'z', slice: -1|1, angle: radians}
+  const face = move[0];
+  const mod = move.slice(1); // '', "'", '2'
+  let axis, slice, baseAngle;
+  if (face === 'R') { axis = 'x'; slice = 1; baseAngle = -Math.PI/2; }
+  else if (face === 'L') { axis = 'x'; slice = -1; baseAngle = Math.PI/2; }
+  else if (face === 'U') { axis = 'y'; slice = 1; baseAngle = -Math.PI/2; }
+  else if (face === 'D') { axis = 'y'; slice = -1; baseAngle = Math.PI/2; }
+  else if (face === 'F') { axis = 'z'; slice = 1; baseAngle = -Math.PI/2; }
+  else if (face === 'B') { axis = 'z'; slice = -1; baseAngle = Math.PI/2; }
+  else return null;
+  let angle = baseAngle;
+  if (mod === "'") angle = -angle;
+  else if (mod === '2') angle = Math.PI;
+  return { axis, slice, angle };
+}
+
+function animateMove3d(move, callback) {
+  if (isAnimating3d) { if (callback) callback(); return; }
+  const p = parseMove3d(move);
+  if (!p) { if (callback) callback(); return; }
+  isAnimating3d = true;
+  // Find cubies in slice
+  const sliceCubies = cubies3d.filter(c => {
+    const pos = c.position;
+    if (p.axis === 'x') return Math.round(pos.x) === p.slice;
+    if (p.axis === 'y') return Math.round(pos.y) === p.slice;
+    return Math.round(pos.z) === p.slice;
+  });
+  // Create pivot group
+  const pivot = new THREE.Group();
+  scene3d.add(pivot);
+  sliceCubies.forEach(c => pivot.attach(c));
+  // Animate
+  const duration = 300;
+  const start = Date.now();
+  const startRot = 0;
+  (function step() {
+    const t = Math.min((Date.now() - start) / duration, 1);
+    const eased = t < 0.5 ? 2*t*t : -1 + (4-2*t)*t; // easeInOut
+    const rot = startRot + p.angle * eased;
+    pivot.rotation[p.axis] = rot;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      // Detach, preserve transform
+      const inv = new THREE.Matrix4().copy(pivot.matrix).invert();
+      sliceCubies.forEach(c => {
+        scene3d.attach(c);
+        // Snap position to grid
+        c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+        // Snap rotation
+        c.rotation.set(
+          Math.round(c.rotation.x / (Math.PI/2)) * (Math.PI/2),
+          Math.round(c.rotation.y / (Math.PI/2)) * (Math.PI/2),
+          Math.round(c.rotation.z / (Math.PI/2)) * (Math.PI/2)
+        );
+      });
+      scene3d.remove(pivot);
+      isAnimating3d = false;
+      if (callback) callback();
+    }
+  })();
 }
 
 document.getElementById('btn-next').addEventListener('click', () => {
-  if (currentMoveIndex < solutionMoves.length) {
-    currentMoveIndex++;
-    updateMoveHighlight();
+  if (currentMoveIndex < solutionMoves.length && !isAnimating3d) {
+    const move = solutionMoves[currentMoveIndex];
+    animateMove3d(move, () => {
+      currentMoveIndex++;
+      updateMoveHighlight();
+    });
   }
 });
 
 document.getElementById('btn-prev').addEventListener('click', () => {
-  if (currentMoveIndex > 0) {
+  if (currentMoveIndex > 0 && !isAnimating3d) {
+    // For prev, we need to invert the last move
     currentMoveIndex--;
-    updateMoveHighlight();
+    const move = solutionMoves[currentMoveIndex];
+    const inv = move.endsWith("'") ? move[0] : move.endsWith('2') ? move : move + "'";
+    animateMove3d(inv, () => {
+      updateMoveHighlight();
+    });
   }
 });
 
@@ -282,16 +432,21 @@ document.getElementById('btn-play').addEventListener('click', () => {
   } else {
     isPlaying = true;
     btn.textContent = '⏸ Jeda';
-    playTimer = setInterval(() => {
+    const stepPlay = () => {
+      if (!isPlaying) return;
       if (currentMoveIndex >= solutionMoves.length) {
-        clearInterval(playTimer);
         isPlaying = false;
         btn.textContent = '▶ Putar';
-      } else {
+        return;
+      }
+      const move = solutionMoves[currentMoveIndex];
+      animateMove3d(move, () => {
         currentMoveIndex++;
         updateMoveHighlight();
-      }
-    }, 800);
+        if (isPlaying) setTimeout(stepPlay, 200);
+      });
+    };
+    stepPlay();
   }
 });
 
