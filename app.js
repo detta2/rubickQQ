@@ -318,7 +318,7 @@ function animateMoveOnScene(move, scene, cubies, camera, callback) {
   const pivot = new THREE.Group();
   scene.add(pivot);
   sliceCubies.forEach(c => pivot.attach(c));
-  const duration = 350; // smoother, slightly longer
+  const duration = 550; // jelas keliatan, tidak terlalu cepat
   const start = performance.now();
   (function step(now) {
     const t = Math.min(((now || performance.now()) - start) / duration, 1);
@@ -519,16 +519,49 @@ document.getElementById('btn-solve-3d').addEventListener('click', () => {
   }, 50);
 });
 
+function describeMove(mv) {
+  if (!mv) return 'Selesai! 🎉 Kubus sudah solved.';
+  const face = mv[0], mod = mv.slice(1);
+  const names = {
+    U: 'ATAS', D: 'BAWAH', R: 'KANAN', L: 'KIRI',
+    F: 'DEPAN', B: 'BELAKANG',
+    M: 'TENGAH (vertikal)', E: 'TENGAH (horizontal)', S: 'TENGAH (depan)'
+  };
+  const layer = names[face] || face;
+  if (mod === '2') return `Putar lapisan ${layer} 180°.`;
+  if (mod === "'") return `Putar lapisan ${layer} 90° berlawanan arah jarum jam.`;
+  return `Putar lapisan ${layer} 90° searah jarum jam.`;
+}
+
 function displaySolution3d() {
   const container = document.getElementById('moves3d');
   container.innerHTML = '';
   solutionMoves3d.forEach((mv, idx) => {
     const chip = document.createElement('span');
     chip.textContent = mv;
-    chip.style.cssText = `padding:6px 12px;border-radius:8px;background:${idx <= currentMoveIdx3d ? '#f2b13d' : '#2a2a3a'};color:${idx <= currentMoveIdx3d ? '#000' : '#fff'};font-weight:bold;cursor:pointer;`;
+    chip.style.cssText = `padding:6px 12px;border-radius:8px;background:${idx <= currentMoveIdx3d ? '#f2b13d' : '#fff'};color:#000;font-weight:bold;cursor:pointer;border:2px solid #333;`;
     chip.addEventListener('click', () => jumpToMove3d(idx));
     container.appendChild(chip);
   });
+  // Instruction card (grubiks-style)
+  const instrEl = document.getElementById('step-instruction');
+  const counterEl = document.getElementById('step-counter');
+  if (instrEl) {
+    const nextIdx = currentMoveIdx3d + 1;
+    if (nextIdx < solutionMoves3d.length) {
+      instrEl.textContent = describeMove(solutionMoves3d[nextIdx]);
+    } else {
+      instrEl.textContent = 'Selesai! 🎉 Kubus sudah solved.';
+    }
+  }
+  if (counterEl) {
+    counterEl.textContent = `Langkah ${Math.min(currentMoveIdx3d + 1, solutionMoves3d.length)} dari ${solutionMoves3d.length}`;
+  }
+  // Update Back/Next button states
+  const prevBtn = document.getElementById('btn-prev3d');
+  const nextBtn = document.getElementById('btn-next3d');
+  if (prevBtn) prevBtn.disabled = currentMoveIdx3d < 0;
+  if (nextBtn) nextBtn.textContent = (currentMoveIdx3d >= solutionMoves3d.length - 1) ? 'Selesai ✓' : 'Next ▶';
 }
 
 function jumpToMove3d(idx) {
@@ -538,7 +571,7 @@ function jumpToMove3d(idx) {
   if (isAnimatingPaint) return;
   isPlaying3d = false;
   const playBtn = document.getElementById('btn-play3d');
-  if (playBtn) playBtn.textContent = '▶ Putar Solusi';
+  if (playBtn) playBtn.textContent = '▶ Putar Otomatis';
   idx = Math.max(-1, Math.min(solutionMoves3d.length - 1, idx));
   while (currentMoveIdx3d < idx) {
     currentMoveIdx3d++;
@@ -592,10 +625,10 @@ document.getElementById('btn-play3d').addEventListener('click', function() {
   (function playNext() {
     if (currentMoveIdx3d >= solutionMoves3d.length - 1) {
       isPlaying3d = false;
-      document.getElementById('btn-play3d').textContent = '▶ Putar Solusi';
+      document.getElementById('btn-play3d').textContent = '▶ Putar Otomatis';
       return;
     }
     stepForward3d();
-    setTimeout(() => { if (isPlaying3d) playNext(); }, 600);
+    setTimeout(() => { if (isPlaying3d) playNext(); }, 900);
   })();
 });

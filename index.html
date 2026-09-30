@@ -40,11 +40,18 @@
   <button class="btn btn-secondary" id="btn-reset-paint">⚪ Reset Putih Polos</button>
   <button class="btn btn-primary" id="btn-solve-3d">🧮 Solve Kubus Ini</button>
   <div id="solution3d" style="display:none;margin-top:16px;">
-    <div class="moves" id="moves3d"></div>
+    <div style="background:#e8f5e9;border-radius:12px;padding:12px;text-align:center;margin-bottom:12px;">
+      <div style="font-weight:800;color:#2e7d32;font-size:18px;letter-spacing:1px;">🎯 SIAP DISELESAIKAN!</div>
+      <div id="step-counter" style="font-size:13px;color:#666;margin-top:4px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px;">
+      <button class="btn btn-secondary" id="btn-prev3d" style="width:auto;padding:10px 16px;margin:0;white-space:nowrap;">◀ Back</button>
+      <div id="step-instruction" style="flex:1;background:#fff;border:2px solid #333;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:12px;font-size:16px;font-weight:700;text-align:center;"></div>
+      <button class="btn btn-primary" id="btn-next3d" style="width:auto;padding:10px 16px;margin:0;white-space:nowrap;">Next ▶</button>
+    </div>
+    <div class="moves" id="moves3d" style="max-height:120px;overflow-y:auto;"></div>
     <div class="controls">
-      <button class="btn btn-secondary" id="btn-prev3d">◀</button>
-      <button class="btn btn-primary" id="btn-play3d">▶ Putar Solusi</button>
-      <button class="btn btn-secondary" id="btn-next3d">▶</button>
+      <button class="btn btn-primary" id="btn-play3d">▶ Putar Otomatis</button>
     </div>
   </div>
 </div>
