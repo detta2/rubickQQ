@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>rubickQQ — Solver Rubik 3x3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0f1a; color: #fff; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  header { padding: 16px; text-align: center; }
+  header h1 { font-size: 28px; font-weight: 800; }
+  header h1 span { color: #f2b13d; }
+  header p { color: #888; font-size: 13px; margin-top: 4px; }
+  .tabs { display: flex; gap: 8px; margin: 12px 0; }
+  .tab {
+    padding: 10px 24px; border-radius: 12px; border: 1px solid #333;
+    background: #1a1a2e; color: #aaa; font-size: 15px; cursor: pointer;
+  }
+  .tab.active { background: #f2b13d; color: #000; border-color: #f2b13d; font-weight: 700; }
+  .panel { display: none; width: 100%; max-width: 420px; padding: 0 16px; }
+  .panel.active { display: block; }
+  /* Camera */
+  #video { width: 100%; border-radius: 16px; background: #000; }
+  #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .cam-wrap { position: relative; width: 100%; }
+  .face-indicator { text-align: center; margin: 12px 0; font-size: 18px; font-weight: 700; }
+  .face-indicator small { display: block; color: #888; font-weight: 400; font-size: 13px; }
+  .btn {
+    display: block; width: 100%; padding: 14px; margin: 8px 0;
+    border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-primary { background: #f2b13d; color: #000; }
+  .btn-secondary { background: #2a2a4a; color: #fff; }
+  .btn:disabled { opacity: 0.4; }
+  /* Manual editor */
+  .net { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 12px 0; }
+  .face-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .face-grid .sticker {
+    aspect-ratio: 1; border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .palette { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .palette .color {
+    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent;
+  }
+  .palette .color.selected { border-color: #fff; }
+  /* Solution */
+  #solution { margin: 16px 0; }
+  .moves { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0; }
+  .move {
+    background: #2a2a4a; padding: 8px 14px; border-radius: 8px;
+    font-family: monospace; font-size: 16px; font-weight: 700;
+  }
+  .move.done { background: #1a5c2a; }
+  .move.current { background: #f2b13d; color: #000; }
+  .controls { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .controls .btn { width: auto; padding: 10px 20px; margin: 0; }
+  /* 3D cube */
+  .cube-scene { width: 280px; height: 280px; margin: 20px auto; perspective: 800px; }
+  .cube3d { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+  .note { color: #666; font-size: 12px; text-align: center; margin: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>rubick<span>QQ</span></h1>
+  <p>Solver Rubik 3×3 • Scan kamera atau edit manual</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="camera">📷 Kamera</button>
+  <button class="tab" data-tab="manual">✏️ Manual</button>
+  <button class="tab" data-tab="solve">🧊 Solve</button>
+</div>
+
+<!-- CAMERA PANEL -->
+<div class="panel active" id="panel-camera">
+  <div class="face-indicator" id="face-indicator">
+    Scan sisi <span id="face-name">PUTIH (atas)</span>
+    <small>Arahkan kamera ke sisi kubus, pastikan 9 stiker terlihat</small>
+  </div>
+  <div class="cam-wrap">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas-overlay"></canvas>
+  </div>
+  <button class="btn btn-primary" id="btn-capture">📸 Ambil Sisi Ini</button>
+  <button class="btn btn-secondary" id="btn-start-cam">🎥 Nyalakan Kamera</button>
+  <div class="note">4×4 dan 5×5 segera hadir</div>
+</div>
+
+<!-- MANUAL PANEL -->
+<div class="panel" id="panel-manual">
+  <div class="palette" id="palette"></div>
+  <div class="net" id="net"></div>
+  <button class="btn btn-secondary" id="btn-reset-manual">🔄 Reset</button>
+  <div class="note">Ketuk stiker untuk mengganti warna sesuai palet yang dipilih</div>
+</div>
+
+<!-- SOLVE PANEL -->
+<div class="panel" id="panel-solve">
+  <button class="btn btn-primary" id="btn-solve">🧮 Hitung Solusi</button>
+  <div id="solution" style="display:none">
+    <div class="moves" id="moves"></div>
+    <div class="controls">
+      <button class="btn btn-secondary" id="btn-prev">◀</button>
+      <button class="btn btn-primary" id="btn-play">▶ Putar</button>
+      <button class="btn btn-secondary" id="btn-next">▶</button>
+    </div>
+    <div class="cube-scene"><div class="cube3d" id="cube3d"></div></div>
+  </div>
+</div>
+
+<script src="cubejs/cube.js"></script>
+<script src="cubejs/solve.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
