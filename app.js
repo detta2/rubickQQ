@@ -236,6 +236,7 @@ function dragToMove(grab, dxScreen, dyScreen) {
 }
 
 function doPaintTurn(move) {
+  if (isAnimatingPaint) return; // jangan tumpuk: state & visual harus sinkron
   applyMoveToState(move);
   animateMoveOnScene(move, scenePaint, cubiesPaint, cameraPaint, () => {
     buildPaintCube();
@@ -266,7 +267,7 @@ let isAnimatingPaint = false;
 function animateMoveOnScene(move, scene, cubies, camera, callback) {
   const p = parseMove3d(move);
   if (!p) { if (callback) callback(); return; }
-  if (isAnimatingPaint) { if (callback) callback(); return; } // skip if already animating
+  if (isAnimatingPaint) return; // drop, don't callback (caller guards before mutating state)
   isAnimatingPaint = true;
   const sliceCubies = cubies.filter(c => {
     const pos = c.position;
@@ -408,6 +409,7 @@ function buildPaintPalette() {
 
 // Reset to plain white
 document.getElementById('btn-reset-paint').addEventListener('click', () => {
+  if (isAnimatingPaint) return;
   for (let f = 0; f < 6; f++) cubeState[f] = new Array(9).fill(0); // all white
   buildPaintCube();
   buildNet();
