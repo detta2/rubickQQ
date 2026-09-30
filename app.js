@@ -793,15 +793,112 @@ document.getElementById('btn-reset-paint').addEventListener('click', () => {
   buildNet();
 });
 
-// Go to solve tab
-document.getElementById('btn-paint-to-solve').addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelector('[data-tab="solve"]').classList.add('active');
-  document.getElementById('panel-solve').classList.add('active');
+// Init 3D on page load (single view, no tabs)
+window.addEventListener('load', () => {
+  setTimeout(() => { buildPaintPalette(); buildPaintCube(); }, 100);
+});
+// Also try immediate init in case load already fired
+setTimeout(() => { buildPaintPalette(); buildPaintCube(); }, 500);
+
+// ===== SOLVE in 3D view =====
+let solutionMoves3d = [];
+let currentMoveIdx3d = -1;
+
+document.getElementById('btn-solve-3d').addEventListener('click', () => {
+  // Validate: each color must appear exactly 9 times
+  const counts = [0,0,0,0,0,0];
+  for (let f = 0; f < 6; f++) {
+    for (let i = 0; i < 9; i++) counts[cubeState[f][i]]++;
+  }
+  for (let c = 0; c < 6; c++) {
+    if (counts[c] !== 9) {
+      alert(`Warna ${COLOR_NAMES[c]} ada ${counts[c]}, harus 9. Lengkapi dulu warnanya!`);
+      return;
+    }
+  }
+  // Convert cubeState to Kociemba string
+  // cubeState faces: 0=U,1=R,2=F,3=D,4=L,5=B. Kociemba expects URFDLB order.
+  const faceMap = ['U','R','F','D','L','B'];
+  let kStr = '';
+  for (let f = 0; f < 6; f++) {
+    for (let i = 0; i < 9; i++) {
+      kStr += faceMap[cubeState[f][i]];
+    }
+  }
+  try {
+    Cube.initSolver();
+    const cube = Cube.fromString(kStr);
+    const sol = cube.solve();
+    solutionMoves3d = sol.split(' ').filter(s => s.length > 0);
+    currentMoveIdx3d = -1;
+    displaySolution3d();
+    document.getElementById('solution3d').style.display = 'block';
+    document.getElementById('solution3d').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (err) {
+    alert('Gagal solve: ' + err.message + '\nPastikan warnanya valid (masing-masing 9).');
+  }
 });
 
-// Init paint when tab opened
-document.querySelector('[data-tab="paint3d"]').addEventListener('click', () => {
-  setTimeout(() => { buildPaintPalette(); buildPaintCube(); }, 50);
+function displaySolution3d() {
+  const container = document.getElementById('moves3d');
+  container.innerHTML = '';
+  solutionMoves3d.forEach((mv, idx) => {
+    const chip = document.createElement('span');
+    chip.textContent = mv;
+    chip.style.cssText = `padding:6px 12px;border-radius:8px;background:${idx <= currentMoveIdx3d ? '#f2b13d' : '#2a2a3a'};color:${idx <= currentMoveIdx3d ? '#000' : '#fff'};font-weight:bold;cursor:pointer;`;
+    chip.addEventListener('click', () => jumpToMove3d(idx));
+    container.appendChild(chip);
+  });
+}
+
+function jumpToMove3d(idx) {
+  // Reset to original painted state, then apply moves up to idx
+  // For simplicity, we track moves applied. Rebuild from scratch is complex.
+  // Instead, step forward/backward from current.
+  while (currentMoveIdx3d < idx) { stepForward3d(); }
+  while (currentMoveIdx3d > idx) { stepBackward3d(); }
+}
+
+function stepForward3d() {
+  if (currentMoveIdx3d >= solutionMoves3d.length - 1) return;
+  currentMoveIdx3d++;
+  const mv = solutionMoves3d[currentMoveIdx3d];
+  applyMoveToState(mv);
+  animateMoveOnScene(mv, scenePaint, cubiesPaint, cameraPaint, () => {
+    buildPaintCube();
+    displaySolution3d();
+  });
+  displaySolution3d();
+}
+
+function stepBackward3d() {
+  if (currentMoveIdx3d < 0) return;
+  const mv = solutionMoves3d[currentMoveIdx3d];
+  const inv = mv.endsWith("'") ? mv.slice(0,-1) : mv.endsWith('2') ? mv : mv + "'";
+  currentMoveIdx3d--;
+  applyMoveToState(inv);
+  animateMoveOnScene(inv, scenePaint, cubiesPaint, cameraPaint, () => {
+    buildPaintCube();
+    displaySolution3d();
+  });
+  displaySolution3d();
+}
+
+document.getElementById('btn-next3d').addEventListener('click', stepForward3d);
+document.getElementById('btn-prev3d').addEventListener('click', stepBackward3d);
+
+let isPlaying3d = false;
+document.getElementById('btn-play3d').addEventListener('click', function() {
+  if (isPlaying3d) return;
+  isPlaying3d = true;
+  this.textContent = '⏸ Pause';
+  (function playNext() {
+    if (currentMoveIdx3d >= solutionMoves3d.length - 1) {
+      isPlaying3d = false;
+      document.getElementById('btn-play3d').textContent = '▶ Putar Solusi';
+      return;
+    }
+    stepForward3d();
+    setTimeout(() => { if (isPlaying3d) playNext(); }, 600);
+  })();
 });

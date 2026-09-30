@@ -70,41 +70,11 @@
 <body>
 <header>
   <h1>rubick<span>QQ</span></h1>
-  <p>Solver Rubik 3×3 • Scan kamera atau edit manual</p>
+  <p>Solver Rubik 3×3 • Warnai kubus 3D lalu solve</p>
 </header>
 
-<div class="tabs">
-  <button class="tab active" data-tab="camera">📷 Kamera</button>
-  <button class="tab" data-tab="manual">✏️ Manual</button>
-  <button class="tab" data-tab="paint3d">🎨 3D</button>
-  <button class="tab" data-tab="solve">🧊 Solve</button>
-</div>
-
-<!-- CAMERA PANEL -->
-<div class="panel active" id="panel-camera">
-  <div class="face-indicator" id="face-indicator">
-    Scan sisi <span id="face-name">PUTIH (atas)</span>
-    <small>Arahkan kamera ke sisi kubus, pastikan 9 stiker terlihat</small>
-  </div>
-  <div class="cam-wrap">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas-overlay"></canvas>
-  </div>
-  <button class="btn btn-primary" id="btn-capture">📸 Ambil Sisi Ini</button>
-  <button class="btn btn-secondary" id="btn-start-cam">🎥 Nyalakan Kamera</button>
-  <div class="note">4×4 dan 5×5 segera hadir</div>
-</div>
-
-<!-- MANUAL PANEL -->
-<div class="panel" id="panel-manual">
-  <div class="palette" id="palette"></div>
-  <div class="net" id="net"></div>
-  <button class="btn btn-secondary" id="btn-reset-manual">🔄 Reset</button>
-  <div class="note">Ketuk stiker untuk mengganti warna sesuai palet yang dipilih</div>
-</div>
-
-<!-- SOLVE PANEL -->
-<div class="panel" id="panel-paint3d">
+<!-- 3D PAINT + SOLVE (single view) -->
+<div class="panel active" id="panel-paint3d">
   <p style="color:#888;font-size:13px;text-align:center;margin:8px 0;">Tap stiker untuk mewarnai. <b>Geser di stiker</b> untuk muter layer.<br>Geser di background untuk muter kamera.</p>
   <div class="palette" id="palette3d" style="display:flex;gap:8px;justify-content:center;margin:12px 0;"></div>
   <div class="cube-scene"><div class="cube3d" id="cube3d-paint" style="width:100%;height:300px;position:relative;"></div></div>
@@ -116,21 +86,15 @@
     <button class="btn btn-secondary" data-move="L" style="padding:10px 0;margin:0;">L</button>
     <button class="btn btn-secondary" data-move="R" style="padding:10px 0;margin:0;">R</button>
   </div>
-  <p style="color:#666;font-size:11px;text-align:center;margin:4px 0;">Tap tombol untuk putar layer (tap 3x = putar balik)</p>
   <button class="btn btn-secondary" id="btn-reset-paint">⚪ Reset Putih Polos</button>
-  <button class="btn btn-primary" id="btn-paint-to-solve">🧊 Lanjut ke Solve →</button>
-</div>
-
-<div class="panel" id="panel-solve">
-  <button class="btn btn-primary" id="btn-solve">🧮 Hitung Solusi</button>
-  <div id="solution" style="display:none">
-    <div class="moves" id="moves"></div>
-    <div class="controls">
-      <button class="btn btn-secondary" id="btn-prev">◀</button>
-      <button class="btn btn-primary" id="btn-play">▶ Putar</button>
-      <button class="btn btn-secondary" id="btn-next">▶</button>
+  <button class="btn btn-primary" id="btn-solve-3d">🧮 Solve Kubus Ini</button>
+  <div id="solution3d" style="display:none;margin-top:16px;">
+    <div class="moves" id="moves3d" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0;"></div>
+    <div class="controls" style="display:flex;gap:8px;justify-content:center;">
+      <button class="btn btn-secondary" id="btn-prev3d">◀</button>
+      <button class="btn btn-primary" id="btn-play3d">▶ Putar Solusi</button>
+      <button class="btn btn-secondary" id="btn-next3d">▶</button>
     </div>
-    <div class="cube-scene"><div class="cube3d" id="cube3d"></div></div>
   </div>
 </div>
 
