@@ -278,7 +278,6 @@ function doPaintTurn(move) {
   applyMoveToState(move);
   animateMoveOnScene(move, scenePaint, cubiesPaint, cameraPaint, () => {
     buildPaintCube();
-    buildNet();
   });
 }
 
@@ -467,7 +466,6 @@ function handlePaintTap(e) {
   pm.map = getStickerTexture(COLORS[paintColor]);
   pm.needsUpdate = true;
   // Also refresh 2D net
-  buildNet();
 }
 
 function buildPaintPalette() {
@@ -518,7 +516,6 @@ document.getElementById('btn-back-paint').addEventListener('click', () => {
     applyMoveToState(invertMove3d(h.move));
   }
   buildPaintCube();
-  buildNet();
   hideSolution3d();
 });
 
@@ -537,7 +534,6 @@ document.getElementById('btn-shuffle-paint').addEventListener('click', () => {
   }
   hideSolution3d();
   buildPaintCube();
-  buildNet();
 });
 
 // Reset to plain white
@@ -547,7 +543,6 @@ document.getElementById('btn-reset-paint').addEventListener('click', () => {
   paintHistory = []; updateBackBtn();
   hideSolution3d();
   buildPaintCube();
-  buildNet();
 });
 
 // Init 3D on page load (single view, no tabs)
