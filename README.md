@@ -1,56 +1,56 @@
 # rubickQQ 🧊
 
-Solver Rubik 3×3 dan 4×4 berbasis web — 100% client-side, tanpa server, tanpa database.
+A web-based Rubik's Cube solver for 3×3 and 4×4 — 100% client-side, no server, no database.
 
 **Live demo:** https://detta2.github.io/rubickQQ/
 
-Cat warna langsung di kubus 3D, tekan solve, ikuti langkahnya. Sesederhana itu.
+Paint your cube directly on the 3D model, hit solve, and follow the steps. That's it.
 
-## ✨ Fitur
+## ✨ Features
 
-- **Kubus 3D interaktif** — putar layer dengan drag, cat stiker langsung di kubus
-- **Solver 3×3** — algoritma Kociemba two-phase, solusi optimal ~20 langkah
-- **Solver 4×4** — metode reduction: centers → edge pairing → parity fix → Kociemba
-  - Verifikasi internal otomatis + retry kombinasi parity
-  - Optimasi langkah (buang gerakan redundan seperti `R R'`)
-- **Panel solusi ala tutorial** — instruksi Bahasa Indonesia per langkah, tombol Back/Next, autoplay
-- **Undo** — batalkan cat warna atau putaran terakhir
-- **Shuffle** — acak kubus dengan 25 langkah
-- **100% offline-capable** — semua komputasi jalan di browser
+- **Interactive 3D cube** — drag to turn layers, paint stickers directly on the cube
+- **3×3 solver** — Kociemba two-phase algorithm, near-optimal ~20-move solutions
+- **4×4 solver** — reduction method: centers → edge pairing → parity fix → Kociemba
+  - Built-in solution verification with automatic parity retry
+  - Move optimizer (eliminates redundancies like `R R'`)
+- **Guided solution panel** — step-by-step instructions, Back/Next buttons, autoplay
+- **Undo** — revert your last paint stroke or turn
+- **Shuffle** — scramble with 25 random moves
+- **Fully offline-capable** — all computation runs in the browser
 
-## 🚀 Cara Pakai
+## 🚀 Usage
 
-1. Buka https://detta2.github.io/rubickQQ/
-2. Pilih tab **3×3** atau **4×4**
-3. Pilih warna dari palet, ketuk stiker di kubus untuk mewarnai — atau tekan **shuffle** untuk acak otomatis
-4. Tekan **solve** — ikuti langkahnya sampai selesai
+1. Open https://detta2.github.io/rubickQQ/
+2. Pick the **3×3** or **4×4** tab
+3. Select a color from the palette and tap stickers to paint — or hit **shuffle** to scramble
+4. Hit **solve** and follow the steps
 
-## 🛠️ Teknologi
+## 🛠️ Tech
 
-- [Three.js](https://threejs.org/) — render kubus 3D
-- [cube.js](https://github.com/lorentey/cubejs) — solver Kociemba two-phase untuk 3×3
-- Vanilla JS + HTML/CSS — tanpa framework, tanpa build step
+- [Three.js](https://threejs.org/) — 3D cube rendering
+- [cube.js](https://github.com/lorentey/cubejs) — Kociemba two-phase solver for 3×3
+- Vanilla JS + HTML/CSS — no framework, no build step
 
-### Cara kerja solver 4×4
+### How the 4×4 solver works
 
-1. **Centers** — selesaikan 4 stiker tengah tiap sisi (24 pieces)
-2. **Edge pairing** — pasangkan 12 pasang wing jadi dedge utuh
-3. **Parity** — perbaiki OLL parity & PLL parity khas 4×4
-4. **3×3 stage** — reduksi jadi kubus 3×3, selesaikan dengan Kociemba
+1. **Centers** — solve the 4 center stickers on each face (24 pieces)
+2. **Edge pairing** — pair 12 wing pairs into complete dedges
+3. **Parity** — fix 4×4-specific OLL and PLL parity cases
+4. **3×3 stage** — reduce to a 3×3 and solve with Kociemba
 
-Setiap solusi diverifikasi secara programatik sebelum ditampilkan — kalau langkahnya tidak benar-benar menyelesaikan kubus, solver mencoba ulang otomatis.
+Every solution is programmatically verified before display — if the moves don't actually solve the cube, the solver automatically retries with a different parity combination.
 
-## 📁 Struktur
+## 📁 Structure
 
 ```
-├── index.html          # Halaman utama
-├── app.js             # Engine kubus 3×3 (Three.js + logika)
-├── app4.js            # Engine kubus 4×4
+├── index.html          # Main page
+├── app.js             # 3×3 cube engine (Three.js + logic)
+├── app4.js            # 4×4 cube engine
 ├── solver4/
-│   └── solver4.js     # Solver 4×4 (reduction method)
-└── cubejs/            # Library Kociemba two-phase (3×3)
+│   └── solver4.js     # 4×4 solver (reduction method)
+└── cubejs/            # Kociemba two-phase library (3×3)
 ```
 
-## 📄 Lisensi
+## 📄 License
 
-MIT — bebas dipakai, dimodifikasi, dan disebarluaskan.
+MIT — free to use, modify, and distribute.
