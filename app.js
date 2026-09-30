@@ -291,7 +291,7 @@ function parseMove3d(move) {
   else if (face === 'M') { axis = 'x'; slice = 0; baseAngle = Math.PI/2; }
   else if (face === 'U') { axis = 'y'; slice = 1; baseAngle = -Math.PI/2; }
   else if (face === 'D') { axis = 'y'; slice = -1; baseAngle = Math.PI/2; }
-  else if (face === 'E') { axis = 'y'; slice = 0; baseAngle = -Math.PI/2; }
+  else if (face === 'E') { axis = 'y'; slice = 0; baseAngle = Math.PI/2; }
   else if (face === 'F') { axis = 'z'; slice = 1; baseAngle = -Math.PI/2; }
   else if (face === 'B') { axis = 'z'; slice = -1; baseAngle = Math.PI/2; }
   else if (face === 'S') { axis = 'z'; slice = 0; baseAngle = -Math.PI/2; }
