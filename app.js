@@ -73,7 +73,7 @@ function initPaintScene() {
   container.innerHTML = '';
   const w = container.clientWidth || 320, h = 300;
   scenePaint = new THREE.Scene();
-  scenePaint.background = new THREE.Color(0x0f0f1a);
+  scenePaint.background = new THREE.Color(0xf0f0f0);
   cameraPaint = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
   cameraPaint.position.set(4.5, 4, 5.5);
   cameraPaint.lookAt(0, 0, 0);
@@ -265,7 +265,7 @@ function buildPaintCube() {
   if (!scenePaint) return;
   cubiesPaint.forEach(c => scenePaint.remove(c));
   cubiesPaint = [];
-  const geo = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+  const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
   for (let x = -1; x <= 1; x++) {
     for (let y = -1; y <= 1; y++) {
       for (let z = -1; z <= 1; z++) {
@@ -276,37 +276,37 @@ function buildPaintCube() {
           const r = 1 - y, c = 1 - z;
           materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(1, r, c) }));
           faceInfo.push({ face: 1, r, c });
-        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // -X (L=4)
         if (x === -1) {
           const r = 1 - y, c = z + 1;
           materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(4, r, c) }));
           faceInfo.push({ face: 4, r, c });
-        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // +Y (U=0)
         if (y === 1) {
           const r = z + 1, c = x + 1;
           materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(0, r, c) }));
           faceInfo.push({ face: 0, r, c });
-        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // -Y (D=3)
         if (y === -1) {
           const r = 1 - z, c = x + 1;
           materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(3, r, c) }));
           faceInfo.push({ face: 3, r, c });
-        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // +Z (F=2)
         if (z === 1) {
           const r = 1 - y, c = x + 1;
           materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(2, r, c) }));
           faceInfo.push({ face: 2, r, c });
-        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         // -Z (B=5)
         if (z === -1) {
           const r = 1 - y, c = 1 - x;
           materials.push(new THREE.MeshLambertMaterial({ color: getPaintStickerColor(5, r, c) }));
           faceInfo.push({ face: 5, r, c });
-        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x111111 })); faceInfo.push(null); }
+        } else { materials.push(new THREE.MeshLambertMaterial({ color: 0x000000 })); faceInfo.push(null); }
         const cubie = new THREE.Mesh(geo, materials);
         cubie.position.set(x, y, z);
         cubie.userData.faceInfo = faceInfo;
@@ -345,7 +345,7 @@ function buildPaintPalette() {
   pal.innerHTML = '';
   COLORS.forEach((col, i) => {
     const d = document.createElement('div');
-    d.style.cssText = `width:44px;height:44px;border-radius:50%;background:${col};cursor:pointer;border:3px solid ${i === paintColor ? '#f2b13d' : 'transparent'}`;
+    d.style.cssText = `width:52px;height:44px;border-radius:8px;background:${col};cursor:pointer;border:3px solid ${i === paintColor ? '#f2b13d' : '#333'};box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
     d.title = COLOR_NAMES[i];
     d.addEventListener('click', () => {
       paintColor = i;
