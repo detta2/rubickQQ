@@ -310,6 +310,10 @@ function buildPaintCube() {
         const cubie = new THREE.Mesh(geo, materials);
         cubie.position.set(x, y, z);
         cubie.userData.faceInfo = faceInfo;
+        // Bold black edge outlines (including outer silhouette)
+        const edges = new THREE.EdgesGeometry(geo);
+        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
+        cubie.add(line);
         scenePaint.add(cubie);
         cubiesPaint.push(cubie);
       }
