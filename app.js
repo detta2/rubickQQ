@@ -143,16 +143,10 @@ function initPaintScene() {
     if (Math.abs(dx) + Math.abs(dy) > 8) isDraggingPaint = true;
     
     if (grabInfo && !grabInfo.turned && isDraggingPaint) {
-      const curPlanePoint = planeIntersect(e, grabInfo.point, grabInfo.normal);
-      if (curPlanePoint && grabInfo.startPlanePoint) {
-        const dragVec = curPlanePoint.clone().sub(grabInfo.startPlanePoint);
-        if (dragVec.length() > 0.25) { // lower threshold = easier to turn
-          const move = dragToMove(grabInfo, dragVec);
-          if (move) {
-            grabInfo.turned = true;
-            doPaintTurn(move);
-          }
-        }
+      const move = dragToMove(grabInfo, dx, dy);
+      if (move) {
+        grabInfo.turned = true;
+        doPaintTurn(move);
       }
     } else if (!grabInfo && isDraggingPaint) {
       const angle = dx * 0.01;
@@ -175,10 +169,43 @@ function initPaintScene() {
   });
 }
 
-function dragToMove(grab, dragVec) {
-  const N = grab.normal;
-  const D = dragVec.clone().normalize();
-  const A = new THREE.Vector3().crossVectors(N, D);
+function dragToMove(grab, dxScreen, dyScreen) {
+  // Screen-space drag detection: project the face's tangent axes to 2D
+  // and pick the one best aligned with the user's drag. Much more forgiving
+  // than 3D plane intersection on small touch screens.
+  const N = grab.normal.clone(); // face normal in world space
+  const dragLen = Math.hypot(dxScreen, dyScreen);
+  if (dragLen < 12) return null; // need a real drag, in pixels
+  const dx = dxScreen / dragLen, dy = dyScreen / dragLen;
+
+  // Two tangent directions on the face
+  const up = Math.abs(N.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+  const T1 = new THREE.Vector3().crossVectors(up, N).normalize();
+  const T2 = new THREE.Vector3().crossVectors(N, T1).normalize();
+
+  // Project a 3D direction to screen-space 2D
+  const rect = rendererPaint.domElement.getBoundingClientRect();
+  function toScreenDir(dir3) {
+    const p0 = grab.cubie.position.clone().project(cameraPaint);
+    const p1 = grab.cubie.position.clone().add(dir3.clone().multiplyScalar(0.5)).project(cameraPaint);
+    const x0 = (p0.x * 0.5 + 0.5) * rect.width, y0 = (-p0.y * 0.5 + 0.5) * rect.height;
+    const x1 = (p1.x * 0.5 + 0.5) * rect.width, y1 = (-p1.y * 0.5 + 0.5) * rect.height;
+    const l = Math.hypot(x1 - x0, y1 - y0) || 1;
+    return { x: (x1 - x0) / l, y: (y1 - y0) / l };
+  }
+
+  // Try all 4 tangent senses, pick best alignment with drag
+  const candidates = [T1, T1.clone().negate(), T2, T2.clone().negate()];
+  let best = null, bestDot = 0.3; // must be reasonably aligned
+  for (const T of candidates) {
+    const s = toScreenDir(T);
+    const dot = dx * s.x + dy * s.y;
+    if (dot > bestDot) { bestDot = dot; best = T; }
+  }
+  if (!best) return null;
+
+  // Rotation axis = N x T (right-hand rule)
+  const A = new THREE.Vector3().crossVectors(N, best);
   if (A.length() < 0.3) return null;
   A.normalize();
   const ax = Math.abs(A.x), ay = Math.abs(A.y), az = Math.abs(A.z);
