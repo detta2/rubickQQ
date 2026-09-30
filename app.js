@@ -220,9 +220,13 @@ function parseMove3d(move) {
   return { axis, slice, angle };
 }
 
+let isAnimatingPaint = false;
+
 function animateMoveOnScene(move, scene, cubies, camera, callback) {
   const p = parseMove3d(move);
   if (!p) { if (callback) callback(); return; }
+  if (isAnimatingPaint) { if (callback) callback(); return; } // skip if already animating
+  isAnimatingPaint = true;
   const sliceCubies = cubies.filter(c => {
     const pos = c.position;
     if (p.axis === 'x') return Math.round(pos.x) === p.slice;
@@ -232,11 +236,12 @@ function animateMoveOnScene(move, scene, cubies, camera, callback) {
   const pivot = new THREE.Group();
   scene.add(pivot);
   sliceCubies.forEach(c => pivot.attach(c));
-  const duration = 250;
-  const start = Date.now();
-  (function step() {
-    const t = Math.min((Date.now() - start) / duration, 1);
-    const eased = t < 0.5 ? 2*t*t : -1 + (4-2*t)*t;
+  const duration = 350; // smoother, slightly longer
+  const start = performance.now();
+  (function step(now) {
+    const t = Math.min(((now || performance.now()) - start) / duration, 1);
+    // smooth ease-in-out cubic
+    const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
     pivot.rotation[p.axis] = p.angle * eased;
     if (t < 1) {
       requestAnimationFrame(step);
@@ -251,6 +256,7 @@ function animateMoveOnScene(move, scene, cubies, camera, callback) {
         );
       });
       scene.remove(pivot);
+      isAnimatingPaint = false;
       if (callback) callback();
     }
   })();
@@ -358,16 +364,6 @@ function buildPaintPalette() {
     pal.appendChild(d);
   });
 }
-
-// Turn buttons in paint mode
-document.querySelectorAll('#turn-buttons button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const move = btn.dataset.move;
-    applyMoveToState(move);
-    buildPaintCube(); // rebuild with new state (instant for now)
-    buildNet(); // sync 2D net
-  });
-});
 
 // Reset to plain white
 document.getElementById('btn-reset-paint').addEventListener('click', () => {
