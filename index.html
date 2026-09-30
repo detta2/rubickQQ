@@ -8,81 +8,40 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #0f0f1a; color: #fff; min-height: 100vh;
+    background: #f0f0f0; color: #222; min-height: 100vh;
     display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
   }
-  header { padding: 16px; text-align: center; }
-  header h1 { font-size: 28px; font-weight: 800; }
-  header h1 span { color: #f2b13d; }
-  header p { color: #888; font-size: 13px; margin-top: 4px; }
-  .tabs { display: flex; gap: 8px; margin: 12px 0; }
-  .tab {
-    padding: 10px 24px; border-radius: 12px; border: 1px solid #333;
-    background: #1a1a2e; color: #aaa; font-size: 15px; cursor: pointer;
-  }
-  .tab.active { background: #f2b13d; color: #000; border-color: #f2b13d; font-weight: 700; }
-  .panel { display: none; width: 100%; max-width: 420px; padding: 0 16px; }
-  .panel.active { display: block; }
-  /* Camera */
-  #video { width: 100%; border-radius: 16px; background: #000; }
-  #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-  .cam-wrap { position: relative; width: 100%; }
-  .face-indicator { text-align: center; margin: 12px 0; font-size: 18px; font-weight: 700; }
-  .face-indicator small { display: block; color: #888; font-weight: 400; font-size: 13px; }
+  .wrap { width: 100%; max-width: 420px; }
+  .palette { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
   .btn {
     display: block; width: 100%; padding: 14px; margin: 8px 0;
     border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
     cursor: pointer;
   }
   .btn-primary { background: #f2b13d; color: #000; }
-  .btn-secondary { background: #2a2a4a; color: #fff; }
+  .btn-secondary { background: #fff; color: #222; border: 2px solid #333; }
   .btn:disabled { opacity: 0.4; }
-  /* Manual editor */
-  .net { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 12px 0; }
-  .face-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-  .face-grid .sticker {
-    aspect-ratio: 1; border-radius: 4px; cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.2);
-  }
-  .palette { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-  .palette .color {
-    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
-    border: 3px solid transparent;
-  }
-  .palette .color.selected { border-color: #fff; }
-  /* Solution */
-  #solution { margin: 16px 0; }
   .moves { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0; }
   .move {
-    background: #2a2a4a; padding: 8px 14px; border-radius: 8px;
-    font-family: monospace; font-size: 16px; font-weight: 700;
+    background: #fff; padding: 8px 14px; border-radius: 8px;
+    font-family: monospace; font-size: 16px; font-weight: 700; border: 2px solid #333;
   }
-  .move.done { background: #1a5c2a; }
-  .move.current { background: #f2b13d; color: #000; }
+  .move.done { background: #d4edda; }
+  .move.current { background: #f2b13d; color: #000; border-color: #f2b13d; }
   .controls { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
   .controls .btn { width: auto; padding: 10px 20px; margin: 0; }
-  /* 3D cube */
-  .cube-scene { width: 280px; height: 280px; margin: 20px auto; perspective: 800px; }
-  .cube3d { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
-  .note { color: #666; font-size: 12px; text-align: center; margin: 16px; }
 </style>
 </head>
 <body>
-<header>
-  <h1>rubick<span>QQ</span></h1>
-  <p>Solver Rubik 3×3 • Warnai kubus 3D lalu solve</p>
-</header>
-
-<!-- 3D PAINT + SOLVE (single view) -->
-<div class="panel active" id="panel-paint3d">
-  <p style="color:#888;font-size:13px;text-align:center;margin:8px 0;">Tap stiker untuk mewarnai. <b>Geser di stiker</b> untuk muter layer.<br>Geser di background untuk muter kamera.</p>
-  <div class="palette" id="palette3d" style="display:flex;gap:8px;justify-content:center;margin:12px 0;"></div>
-  <div class="cube-scene" style="background:#f0f0f0;border-radius:12px;"><div class="cube3d" id="cube3d-paint" style="width:100%;height:320px;position:relative;"></div></div>
+<div class="wrap">
+  <div class="palette" id="palette3d"></div>
+  <div style="background:#f0f0f0;border-radius:12px;"><div id="cube3d-paint" style="width:100%;height:320px;position:relative;"></div></div>
   <button class="btn btn-secondary" id="btn-reset-paint">⚪ Reset Putih Polos</button>
   <button class="btn btn-primary" id="btn-solve-3d">🧮 Solve Kubus Ini</button>
   <div id="solution3d" style="display:none;margin-top:16px;">
-    <div class="moves" id="moves3d" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0;"></div>
-    <div class="controls" style="display:flex;gap:8px;justify-content:center;">
+    <div class="moves" id="moves3d"></div>
+    <div class="controls">
       <button class="btn btn-secondary" id="btn-prev3d">◀</button>
       <button class="btn btn-primary" id="btn-play3d">▶ Putar Solusi</button>
       <button class="btn btn-secondary" id="btn-next3d">▶</button>
