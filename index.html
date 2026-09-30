@@ -3,62 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>rubickQQ — Solver Rubik 3x3</title>
+<title>rubickQQ — Solver Rubik 3×3</title>
 <style>
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('fonts/spacegrotesk-500.woff2') format('woff2');
+    font-weight: 500; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('fonts/spacegrotesk-700.woff2') format('woff2');
+    font-weight: 700; font-display: swap;
+  }
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161c;
+    --surface-2: #1e1e27;
+    --border: rgba(255,255,255,.08);
+    --text: #f4f4f5;
+    --dim: #a1a1aa;
+    --gold: #f2b13d;
+    --gold-dim: rgba(242,177,61,.14);
+    --r-card: 18px;
+    --r-btn: 14px;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #f0f0f0; color: #222; min-height: 100vh;
+    background:
+      radial-gradient(600px 400px at 50% -80px, rgba(242,177,61,.07), transparent 70%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
     display: flex; flex-direction: column; align-items: center;
-    padding: 16px;
+    padding: 20px 16px 32px;
   }
-  .wrap { width: 100%; max-width: 420px; }
-  .palette { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .wrap { width: 100%; max-width: 430px; }
+
+  /* ── top bar ─────────────────────────────── */
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .brand { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -.5px; }
+  .brand span { color: var(--gold); }
+  .tag { font-size: 10.5px; letter-spacing: 2.5px; color: var(--dim); font-weight: 600; }
+
+  /* ── palette ─────────────────────────────── */
+  .palette-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-card); padding: 12px;
+    display: flex; gap: 10px; justify-content: center;
+    margin-bottom: 12px;
+  }
+  .swatch {
+    width: 46px; height: 46px; border-radius: 12px; cursor: pointer;
+    border: 2px solid rgba(255,255,255,.14);
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .swatch:active { transform: scale(.92); }
+  .swatch.active {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-dim), 0 4px 14px rgba(0,0,0,.4);
+    transform: scale(1.06);
+  }
+
+  /* ── 3d stage ────────────────────────────── */
+  .stage {
+    background:
+      radial-gradient(320px 240px at 50% 38%, rgba(242,177,61,.09), transparent 70%),
+      var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.45);
+    margin-bottom: 10px;
+  }
+  #cube3d-paint { width: 100%; height: 330px; position: relative; touch-action: none; }
+  #cube3d-paint canvas { display: block; }
+  .hint { text-align: center; font-size: 12px; color: var(--dim); margin-bottom: 14px; }
+
+  /* ── buttons ─────────────────────────────── */
   .btn {
-    display: block; width: 100%; padding: 14px; margin: 8px 0;
-    border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
-    cursor: pointer;
+    display: block; width: 100%; padding: 15px; margin: 0;
+    border: none; border-radius: var(--r-btn);
+    font-size: 16px; font-weight: 700; font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: .3px; cursor: pointer;
+    transition: transform .12s ease, filter .12s ease;
   }
-  .btn-primary { background: #f2b13d; color: #000; }
-  .btn-secondary { background: #fff; color: #222; border: 2px solid #333; }
-  .btn:disabled { opacity: 0.4; }
-  .moves { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0; }
-  .move {
-    background: #fff; padding: 8px 14px; border-radius: 8px;
-    font-family: monospace; font-size: 16px; font-weight: 700; border: 2px solid #333;
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .35; }
+  .btn-gold { background: var(--gold); color: #1a1206; box-shadow: 0 6px 20px rgba(242,177,61,.25); }
+  .btn-gold:active { filter: brightness(.94); }
+  .btn-ghost {
+    background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border);
   }
-  .move.done { background: #d4edda; }
-  .move.current { background: #f2b13d; color: #000; border-color: #f2b13d; }
-  .controls { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-  .controls .btn { width: auto; padding: 10px 20px; margin: 0; }
+  .btn-row { display: flex; gap: 10px; margin-bottom: 4px; }
+  .btn-row .btn-ghost { flex: 1; }
+  .btn-row .btn-gold { flex: 1.6; }
+
+  /* ── solution panel ──────────────────────── */
+  #solution3d { margin-top: 16px; animation: rise .35s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .banner {
+    background: linear-gradient(135deg, rgba(242,177,61,.16), rgba(242,177,61,.05));
+    border: 1px solid rgba(242,177,61,.35);
+    border-radius: var(--r-card); padding: 14px; text-align: center; margin-bottom: 12px;
+  }
+  .banner .title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--gold); font-size: 17px; letter-spacing: 1.5px; }
+  #step-counter { font-size: 12.5px; color: var(--dim); margin-top: 5px; font-weight: 600; }
+  .stepper { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+  .stepper .btn { width: auto; padding: 12px 18px; margin: 0; white-space: nowrap; font-size: 15px; }
+  #step-instruction {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-card); display: flex; align-items: center; justify-content: center;
+    padding: 14px; font-size: 15.5px; font-weight: 600; text-align: center; line-height: 1.45;
+  }
+  .moves {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    margin-bottom: 12px; max-height: 132px; overflow-y: auto; padding: 2px;
+  }
+  .chip {
+    padding: 8px 14px; border-radius: 999px; background: var(--surface-2);
+    color: var(--dim); font-family: 'Space Grotesk', monospace; font-size: 14px; font-weight: 700;
+    border: 1px solid var(--border); cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chip.done { background: rgba(255,255,255,.06); color: var(--text); border-color: rgba(255,255,255,.12); }
+  .chip.current { background: var(--gold); color: #1a1206; border-color: var(--gold); box-shadow: 0 3px 12px rgba(242,177,61,.35); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="palette" id="palette3d"></div>
-  <div style="background:#f0f0f0;border-radius:12px;"><div id="cube3d-paint" style="width:100%;height:320px;position:relative;touch-action:none;"></div></div>
-  <button class="btn btn-secondary" id="btn-reset-paint">⚪ Reset Putih Polos</button>
-  <button class="btn btn-primary" id="btn-solve-3d">🧮 Solve Kubus Ini</button>
-  <div id="solution3d" style="display:none;margin-top:16px;">
-    <div style="background:#e8f5e9;border-radius:12px;padding:12px;text-align:center;margin-bottom:12px;">
-      <div style="font-weight:800;color:#2e7d32;font-size:18px;letter-spacing:1px;">🎯 SIAP DISELESAIKAN!</div>
-      <div id="step-counter" style="font-size:13px;color:#666;margin-top:4px;"></div>
+  <div class="topbar">
+    <div class="brand">rubick<span>QQ</span></div>
+    <div class="tag">SOLVER 3×3</div>
+  </div>
+
+  <div class="palette-card" id="palette3d"></div>
+
+  <div class="stage"><div id="cube3d-paint"></div></div>
+  <div class="hint">Ketuk stiker untuk mewarnai &nbsp;·&nbsp; seret untuk memutar lapisan</div>
+
+  <div class="btn-row">
+    <button class="btn btn-ghost" id="btn-reset-paint">Reset</button>
+    <button class="btn btn-gold" id="btn-solve-3d">Solve Kubus Ini</button>
+  </div>
+
+  <div id="solution3d" style="display:none;">
+    <div class="banner">
+      <div class="title">SIAP DISELESAIKAN</div>
+      <div id="step-counter"></div>
     </div>
-    <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px;">
-      <button class="btn btn-secondary" id="btn-prev3d" style="width:auto;padding:10px 16px;margin:0;white-space:nowrap;">◀ Back</button>
-      <div id="step-instruction" style="flex:1;background:#fff;border:2px solid #333;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:12px;font-size:16px;font-weight:700;text-align:center;"></div>
-      <button class="btn btn-primary" id="btn-next3d" style="width:auto;padding:10px 16px;margin:0;white-space:nowrap;">Next ▶</button>
+    <div class="stepper">
+      <button class="btn btn-ghost" id="btn-prev3d">◀</button>
+      <div id="step-instruction"></div>
+      <button class="btn btn-gold" id="btn-next3d">Next ▶</button>
     </div>
-    <div class="moves" id="moves3d" style="max-height:120px;overflow-y:auto;"></div>
-    <div class="controls">
-      <button class="btn btn-primary" id="btn-play3d">▶ Putar Otomatis</button>
-    </div>
+    <div class="moves" id="moves3d"></div>
+    <button class="btn btn-gold" id="btn-play3d">▶ Putar Otomatis</button>
   </div>
 </div>
 
 <script src="cubejs/cube.js"></script>
 <script src="cubejs/solve.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

@@ -91,11 +91,12 @@ function initPaintScene() {
   container.innerHTML = '';
   const w = container.clientWidth || 320, h = 300;
   scenePaint = new THREE.Scene();
-  scenePaint.background = new THREE.Color(0xf0f0f0);
+  // transparent: CSS radial glow on .stage shows through
   cameraPaint = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
   cameraPaint.position.set(5.5, 5, 6.8); // further back = more margin for camera drag
   cameraPaint.lookAt(0, 0, 0);
-  rendererPaint = new THREE.WebGLRenderer({ antialias: true });
+  rendererPaint = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  rendererPaint.setClearColor(0x000000, 0);
   rendererPaint.setSize(w, h);
   container.appendChild(rendererPaint.domElement);
   scenePaint.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -471,7 +472,8 @@ function buildPaintPalette() {
   pal.innerHTML = '';
   COLORS.forEach((col, i) => {
     const d = document.createElement('div');
-    d.style.cssText = `width:52px;height:44px;border-radius:8px;background:${col};cursor:pointer;border:3px solid ${i === paintColor ? '#f2b13d' : '#333'};box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
+    d.className = 'swatch' + (i === paintColor ? ' active' : '');
+    d.style.background = col;
     d.title = COLOR_NAMES[i];
     d.addEventListener('click', () => {
       paintColor = i;
@@ -588,7 +590,7 @@ function displaySolution3d() {
   solutionMoves3d.forEach((mv, idx) => {
     const chip = document.createElement('span');
     chip.textContent = mv;
-    chip.style.cssText = `padding:6px 12px;border-radius:8px;background:${idx <= currentMoveIdx3d ? '#f2b13d' : '#fff'};color:#000;font-weight:bold;cursor:pointer;border:2px solid #333;`;
+    chip.className = 'chip' + (idx === currentMoveIdx3d ? ' current' : idx < currentMoveIdx3d ? ' done' : '');
     chip.addEventListener('click', () => jumpToMove3d(idx));
     container.appendChild(chip);
   });
