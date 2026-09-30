@@ -619,7 +619,7 @@ document.getElementById('btn-prev3d').addEventListener('click', stepBackward3d);
 
 let isPlaying3d = false;
 document.getElementById('btn-play3d').addEventListener('click', function() {
-  if (isPlaying3d) return;
+  if (isPlaying3d) { isPlaying3d = false; this.textContent = '▶ Putar Otomatis'; return; }
   isPlaying3d = true;
   this.textContent = '⏸ Pause';
   (function playNext() {
