@@ -684,6 +684,7 @@ function switchMode(m) {
   window.scrollTo(0, 0);
 }
 
-document.getElementById('tab-3x3').addEventListener('click', () => switchMode('3'));
-document.getElementById('tab-4x4').addEventListener('click', () => switchMode('4'));
+// Tab listeners handled by app5.js (3-mode switcher)
+// document.getElementById('tab-3x3').addEventListener('click', () => switchMode('3'));
+// document.getElementById('tab-4x4').addEventListener('click', () => switchMode('4'));
 renderMiniCube(3);
