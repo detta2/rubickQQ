@@ -87,8 +87,8 @@ function invertMove4(mv) {
 let cubeState5 = newSolved5();
 let paintHistory4 = [];
 let isAnimatingPaint4 = false;
-let scenePaint4 = null, cameraPaint4 = null, rendererPaint4 = null;
-let cubiesPaint4 = [];
+let scenePaint5 = null, cameraPaint5 = null, rendererPaint5 = null;
+let cubiesPaint5 = [];
 let solutionMoves5d = [];
 let solutionPhases5d = []; // [{name, start, end}]
 let currentMoveIdx5d = -1;
@@ -114,28 +114,28 @@ function hideSolution5d() {
 }
 
 // ================= 3D SCENE =================
-function initPaintScene4() {
+function initPaintScene5() {
   const container = document.getElementById('cube5d-paint');
   if (!container) return;
   container.innerHTML = '';
   const w = container.clientWidth || 320, h = 320;
-  scenePaint4 = new THREE.Scene();
-  scenePaint4.background = new THREE.Color(0xf0f0f0);
-  cameraPaint4 = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-  cameraPaint4.position.set(7.2, 6.6, 9.0);
-  cameraPaint4.lookAt(0, 0, 0);
-  rendererPaint4 = new THREE.WebGLRenderer({ antialias: true });
-  rendererPaint4.setSize(w, h);
-  container.appendChild(rendererPaint4.domElement);
-  scenePaint4.add(new THREE.AmbientLight(0xffffff, 0.7));
+  scenePaint5 = new THREE.Scene();
+  scenePaint5.background = new THREE.Color(0xf0f0f0);
+  cameraPaint5 = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+  cameraPaint5.position.set(7.2, 6.6, 9.0);
+  cameraPaint5.lookAt(0, 0, 0);
+  rendererPaint5 = new THREE.WebGLRenderer({ antialias: true });
+  rendererPaint5.setSize(w, h);
+  container.appendChild(rendererPaint5.domElement);
+  scenePaint5.add(new THREE.AmbientLight(0xffffff, 0.7));
   const dir = new THREE.DirectionalLight(0xffffff, 0.5);
   dir.position.set(5, 10, 7);
-  scenePaint4.add(dir);
+  scenePaint5.add(dir);
   (function animate() {
     requestAnimationFrame(animate);
-    if (rendererPaint4) rendererPaint4.render(scenePaint4, cameraPaint4);
+    if (rendererPaint5) rendererPaint5.render(scenePaint5, cameraPaint5);
   })();
-  const el = rendererPaint4.domElement;
+  const el = rendererPaint5.domElement;
   const raycaster = new THREE.Raycaster();
   let grabInfo = null;
   let activePointerId = null;
@@ -149,8 +149,8 @@ function initPaintScene4() {
     );
   }
   function raycastCube(e) {
-    raycaster.setFromCamera(getNDC(e), cameraPaint4);
-    const hits = raycaster.intersectObjects(cubiesPaint4);
+    raycaster.setFromCamera(getNDC(e), cameraPaint5);
+    const hits = raycaster.intersectObjects(cubiesPaint5);
     if (hits.length === 0) return null;
     const hit = hits[0];
     const matIndex = hit.face.materialIndex;
@@ -170,7 +170,7 @@ function initPaintScene4() {
     return { cubie: hit.object, normal: worldNormal, faceInfo: info, point: hit.point.clone() };
   }
   function planeIntersect(e, planePoint, planeNormal) {
-    raycaster.setFromCamera(getNDC(e), cameraPaint4);
+    raycaster.setFromCamera(getNDC(e), cameraPaint5);
     const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(planeNormal, planePoint);
     const out = new THREE.Vector3();
     return raycaster.ray.intersectPlane(plane, out) ? out : null;
@@ -205,11 +205,11 @@ function initPaintScene4() {
       }
     } else if (!grabInfo && isDragging) {
       const angle = dx * 0.01;
-      const x = cameraPaint4.position.x, z = cameraPaint4.position.z;
-      cameraPaint4.position.x = x * Math.cos(angle) - z * Math.sin(angle);
-      cameraPaint4.position.z = x * Math.sin(angle) + z * Math.cos(angle);
-      cameraPaint4.position.y = Math.max(-8, Math.min(8, cameraPaint4.position.y - dy * 0.02));
-      cameraPaint4.lookAt(0, 0, 0);
+      const x = cameraPaint5.position.x, z = cameraPaint5.position.z;
+      cameraPaint5.position.x = x * Math.cos(angle) - z * Math.sin(angle);
+      cameraPaint5.position.z = x * Math.sin(angle) + z * Math.cos(angle);
+      cameraPaint5.position.y = Math.max(-8, Math.min(8, cameraPaint5.position.y - dy * 0.02));
+      cameraPaint5.lookAt(0, 0, 0);
       dragStart = { x: e.clientX, y: e.clientY };
     }
   });
@@ -230,13 +230,13 @@ function getPaintStickerColor5(face, r, c) {
 }
 
 function buildPaintCube5() {
-  if (!scenePaint4) initPaintScene4();
-  if (!scenePaint4) return;
-  cubiesPaint4.forEach(c => scenePaint4.remove(c));
-  cubiesPaint4 = [];
+  if (!scenePaint5) initPaintScene5();
+  if (!scenePaint5) return;
+  cubiesPaint5.forEach(c => scenePaint5.remove(c));
+  cubiesPaint5 = [];
   const geo = new THREE.BoxGeometry(0.99, 0.99, 0.99);
   const black = new THREE.MeshLambertMaterial({ color: 0x000000 });
-  const coords = [-2, -0.5, 0.5, 2];
+  const coords = [-2, -1, 0, 1, 2];
   for (const x of coords) for (const y of coords) for (const z of coords) {
     const materials = [];
     const faceInfo = [];
@@ -281,22 +281,22 @@ function buildPaintCube5() {
     cubie.userData.faceInfo = faceInfo;
     const edges = new THREE.EdgesGeometry(geo);
     cubie.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 })));
-    scenePaint4.add(cubie);
-    cubiesPaint4.push(cubie);
+    scenePaint5.add(cubie);
+    cubiesPaint5.push(cubie);
   }
 }
 
 function handlePaintTap4(e) {
   if (isAnimatingPaint4) return;
-  const el = rendererPaint4.domElement;
+  const el = rendererPaint5.domElement;
   const rect = el.getBoundingClientRect();
   const mouse = new THREE.Vector2(
     ((e.clientX - rect.left) / rect.width) * 2 - 1,
     -((e.clientY - rect.top) / rect.height) * 2 + 1
   );
   const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(mouse, cameraPaint4);
-  const hits = raycaster.intersectObjects(cubiesPaint4);
+  raycaster.setFromCamera(mouse, cameraPaint5);
+  const hits = raycaster.intersectObjects(cubiesPaint5);
   if (hits.length === 0) return;
   const hit = hits[0];
   const matIndex = hit.face.materialIndex;
@@ -320,10 +320,10 @@ function dragToMove4(grab, dxScreen, dyScreen) {
   const up = Math.abs(N.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
   const T1 = new THREE.Vector3().crossVectors(up, N).normalize();
   const T2 = new THREE.Vector3().crossVectors(N, T1).normalize();
-  const rect = rendererPaint4.domElement.getBoundingClientRect();
+  const rect = rendererPaint5.domElement.getBoundingClientRect();
   function toScreenDir(dir3) {
-    const p0 = grab.cubie.position.clone().project(cameraPaint4);
-    const p1 = grab.cubie.position.clone().add(dir3.clone().multiplyScalar(0.5)).project(cameraPaint4);
+    const p0 = grab.cubie.position.clone().project(cameraPaint5);
+    const p1 = grab.cubie.position.clone().add(dir3.clone().multiplyScalar(0.5)).project(cameraPaint5);
     const x0 = (p0.x * 0.5 + 0.5) * rect.width, y0 = (-p0.y * 0.5 + 0.5) * rect.height;
     const x1 = (p1.x * 0.5 + 0.5) * rect.width, y1 = (-p1.y * 0.5 + 0.5) * rect.height;
     const l = Math.hypot(x1 - x0, y1 - y0) || 1;
@@ -361,13 +361,13 @@ function animateMoveOnScene4(move, callback) {
   if (!p) { if (callback) callback(); return; }
   if (isAnimatingPaint4) return;
   isAnimatingPaint4 = true;
-  const sliceCubies = cubiesPaint4.filter(c => {
+  const sliceCubies = cubiesPaint5.filter(c => {
     const pos = c.position;
     const v = p.axis === 'x' ? pos.x : p.axis === 'y' ? pos.y : pos.z;
     return p.slices.some(s => Math.abs(v - s) < 0.1);
   });
   const pivot = new THREE.Group();
-  scenePaint4.add(pivot);
+  scenePaint5.add(pivot);
   sliceCubies.forEach(c => pivot.attach(c));
   const duration = 550;
   const start = performance.now();
@@ -379,7 +379,7 @@ function animateMoveOnScene4(move, callback) {
       requestAnimationFrame(step);
     } else {
       sliceCubies.forEach(c => {
-        scenePaint4.attach(c);
+        scenePaint5.attach(c);
         c.position.set(Math.round(c.position.x * 2) / 2, Math.round(c.position.y * 2) / 2, Math.round(c.position.z * 2) / 2);
         c.rotation.set(
           Math.round(c.rotation.x / (Math.PI / 2)) * (Math.PI / 2),
@@ -387,7 +387,7 @@ function animateMoveOnScene4(move, callback) {
           Math.round(c.rotation.z / (Math.PI / 2)) * (Math.PI / 2)
         );
       });
-      scenePaint4.remove(pivot);
+      scenePaint5.remove(pivot);
       isAnimatingPaint4 = false;
       if (callback) callback();
     }
