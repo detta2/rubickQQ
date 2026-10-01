@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>rubickQQ — Solver Rubik 3x3 & 4x4</title>
+<title>rubickQQ — Solver Rubik 3x3, 4x4 & 5x5</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
@@ -71,6 +71,7 @@
   <nav class="mode-tabs">
     <button class="mode-tab active" id="tab-3x3">3×3</button>
     <button class="mode-tab" id="tab-4x4">4×4</button>
+    <button class="mode-tab" id="tab-5x5">5×5</button>
   </nav>
 </header>
 <div class="wrap" id="view3">
@@ -128,11 +129,40 @@
   </div>
 </div>
 
+<div class="wrap" id="view5" style="display:none;">
+  <div class="palette" id="palette5d"></div>
+  <div style="background:#f0f0f0;border-radius:12px;"><div id="cube5d-paint" style="width:100%;height:320px;position:relative;touch-action:none;"></div></div>
+  <button class="btn-solve-big" id="btn-solve-5d">solve</button>
+  <div class="mini-links">
+    <button class="link-btn" id="btn-back-paint5" disabled>‹ back</button>
+    <button class="link-btn" id="btn-shuffle-paint5">shuffle</button>
+    <button class="link-btn" id="btn-reset-paint5">reset</button>
+    <button class="link-btn" id="btn-blank-paint5">blank</button>
+  </div>
+  <div id="solution5d" style="display:none;margin-top:16px;">
+    <div style="background:#e8f5e9;border-radius:12px;padding:12px;text-align:center;margin-bottom:12px;">
+      <div style="font-weight:800;color:#2e7d32;font-size:18px;letter-spacing:1px;">🎯 SIAP DISELESAIKAN!</div>
+      <div id="phase5d" style="font-size:12px;color:#2e7d32;font-weight:700;margin-top:2px;"></div>
+      <div id="step-counter5" style="font-size:13px;color:#666;margin-top:4px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:12px;">
+      <button class="btn btn-secondary" id="btn-prev5d" style="width:auto;padding:10px 16px;margin:0;white-space:nowrap;">◀ Back</button>
+      <div id="step-instruction5" style="flex:1;background:#fff;border:2px solid #333;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:12px;font-size:16px;font-weight:700;text-align:center;"></div>
+      <button class="btn btn-primary" id="btn-next5d" style="width:auto;padding:10px 16px;margin:0;white-space:nowrap;">Next ▶</button>
+    </div>
+    <div class="moves" id="moves5d" style="max-height:120px;overflow-y:auto;"></div>
+    <div class="controls">
+      <button class="btn btn-primary" id="btn-play5d">▶ Putar Otomatis</button>
+    </div>
+  </div>
+</div>
+
 <script src="cubejs/cube.js"></script>
 <script src="cubejs/solve.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="app.js?v=8"></script>
 <script src="app4.js?v=1"></script>
+<script src="app5.js?v=1"></script>
 <script src="solver4/solver4.js?v=3"></script>
 </body>
 </html>
