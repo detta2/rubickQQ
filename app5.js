@@ -667,28 +667,5 @@ function renderMiniCube(n) {
     `<g stroke="#222" stroke-width="0.8">${lines}</g></svg>`;
 }
 
-let currentMode = '3';
-
-function switchMode(m) {
-  currentMode = m;
-  document.getElementById('view3').style.display = m === '3' ? '' : 'none';
-  document.getElementById('view4').style.display = m === '4' ? '' : 'none';
-  document.getElementById('view5').style.display = m === '5' ? '' : 'none';
-  document.getElementById('tab-3x3').classList.toggle('active', m === '3');
-  document.getElementById('tab-4x4').classList.toggle('active', m === '4');
-  document.getElementById('tab-5x5').classList.toggle('active', m === '5');
-  renderMiniCube(m === '3' ? 3 : m === '4' ? 4 : 5);
-  if (m === '5' && !scene5Ready) {
-    buildPaintPalette5();
-    buildPaintCube5();
-    updateBackBtn5();
-  } else if (m === '5') {
-    buildPaintCube5();
-  }
-  window.scrollTo(0, 0);
-}
-
-document.getElementById('tab-3x3').addEventListener('click', () => switchMode('3'));
-document.getElementById('tab-4x4').addEventListener('click', () => switchMode('4'));
-document.getElementById('tab-5x5').addEventListener('click', () => switchMode('5'));
-renderMiniCube(3);
+// Tab switching handled by app4.js (switchMode with 3 modes)
+// 5x5 cube functions defined above are called by app4.js's switchMode

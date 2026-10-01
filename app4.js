@@ -668,23 +668,34 @@ function renderMiniCube(n) {
 }
 
 function switchMode(m) {
-  is4x4 = (m === '4');
-  document.getElementById('view3').style.display = is4x4 ? 'none' : '';
-  document.getElementById('view4').style.display = is4x4 ? '' : 'none';
-  document.getElementById('tab-3x3').classList.toggle('active', !is4x4);
-  document.getElementById('tab-4x4').classList.toggle('active', is4x4);
-  renderMiniCube(is4x4 ? 4 : 3);
-  if (is4x4 && !scene4Ready) {
+  document.getElementById('view3').style.display = m === '3' ? '' : 'none';
+  document.getElementById('view4').style.display = m === '4' ? '' : 'none';
+  document.getElementById('view5').style.display = m === '5' ? '' : 'none';
+  document.getElementById('tab-3x3').classList.toggle('active', m === '3');
+  document.getElementById('tab-4x4').classList.toggle('active', m === '4');
+  const tab5 = document.getElementById('tab-5x5');
+  if (tab5) tab5.classList.toggle('active', m === '5');
+  renderMiniCube(m === '3' ? 3 : m === '4' ? 4 : 5);
+  if (m === '4' && !scene4Ready) {
     buildPaintPalette4();
     buildPaintCube4();
     updateBackBtn4();
-  } else if (is4x4) {
+  } else if (m === '4') {
     buildPaintCube4();
+  } else if (m === '5' && typeof buildPaintCube5 === 'function') {
+    if (typeof scene5Ready !== 'undefined' && !scene5Ready) {
+      if (typeof buildPaintPalette5 === 'function') buildPaintPalette5();
+      buildPaintCube5();
+      if (typeof updateBackBtn5 === 'function') updateBackBtn5();
+    } else {
+      buildPaintCube5();
+    }
   }
   window.scrollTo(0, 0);
 }
 
-// Tab listeners handled by app5.js (3-mode switcher)
-// document.getElementById('tab-3x3').addEventListener('click', () => switchMode('3'));
-// document.getElementById('tab-4x4').addEventListener('click', () => switchMode('4'));
+document.getElementById('tab-3x3').addEventListener('click', () => switchMode('3'));
+document.getElementById('tab-4x4').addEventListener('click', () => switchMode('4'));
+const tab5el = document.getElementById('tab-5x5');
+if (tab5el) tab5el.addEventListener('click', () => switchMode('5'));
 renderMiniCube(3);
