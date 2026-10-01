@@ -1,5 +1,5 @@
-// app4.js — rubickQQ 5x5 mode (3D paint + solve)
-// State: 6 faces x 16 stickers, color indices 0-5 (U,R,F,D,L,B = white,red,green,yellow,orange,blue)
+// app5.js — rubickQQ 5x5 mode (3D paint + solve)
+// State: 6 faces x 25 stickers, color indices 0-5 (U,R,F,D,L,B = white,red,green,yellow,orange,blue)
 // Face orientation:
 //   U: r=0 @B, r=3 @F, c=0 @L, c=3 @R    D: r=0 @F, r=3 @B, c=0 @L, c=3 @R
 //   F: r=0 @U, r=3 @D, c=0 @L, c=3 @R    B: r=0 @U, r=3 @D, c=0 @R, c=3 @L
@@ -492,10 +492,10 @@ document.getElementById('btn-solve-5d').addEventListener('click', () => {
     return;
   }
   const counts = [0, 0, 0, 0, 0, 0];
-  for (let f = 0; f < 6; f++) for (let i = 0; i < 16; i++) counts[cubeState5[f][i]]++;
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 25; i++) counts[cubeState5[f][i]]++;
   for (let c = 0; c < 6; c++) {
-    if (counts[c] !== 16) {
-      alert(`Warna ${COLOR_NAMES[c]} ada ${counts[c]}, harus 16. Lengkapi dulu warnanya!`);
+    if (counts[c] !== 25) {
+      alert(`Warna ${COLOR_NAMES[c]} ada ${counts[c]}, harus 25. Lengkapi dulu warnanya!`);
       return;
     }
   }
