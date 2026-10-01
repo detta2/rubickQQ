@@ -79,14 +79,14 @@ function newSolved5() {
 function isSolved5(state) {
   return state.every(f => f.every(s => s === f[0]));
 }
-function invertMove4(mv) {
+function invertMove5(mv) {
   return mv.endsWith("'") ? mv.slice(0, -1) : mv.endsWith('2') ? mv : mv + "'";
 }
 
 // ================= STATE =================
 let cubeState5 = newSolved5();
-let paintHistory4 = [];
-let isAnimatingPaint4 = false;
+let paintHistory5 = [];
+let isAnimatingPaint5 = false;
 let scenePaint5 = null, cameraPaint5 = null, rendererPaint5 = null;
 let cubiesPaint5 = [];
 let solutionMoves5d = [];
@@ -96,14 +96,14 @@ let isPlaying5d = false;
 let is5x5 = false;
 let scene5Ready = false;
 
-function pushPaintHistory4(entry) {
-  paintHistory4.push(entry);
-  if (paintHistory4.length > 100) paintHistory4.shift();
+function pushPaintHistory5(entry) {
+  paintHistory5.push(entry);
+  if (paintHistory5.length > 100) paintHistory5.shift();
   updateBackBtn5();
 }
 function updateBackBtn5() {
   const b = document.getElementById('btn-back-paint5');
-  if (b) b.disabled = paintHistory4.length === 0;
+  if (b) b.disabled = paintHistory5.length === 0;
 }
 function hideSolution5d() {
   const el = document.getElementById('solution5d');
@@ -195,10 +195,10 @@ function initPaintScene5() {
     const dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
     if (Math.abs(dx) + Math.abs(dy) > 8) isDragging = true;
     if (grabInfo && !grabInfo.turned && isDragging) {
-      const move = dragToMove4(grabInfo, dx, dy);
+      const move = dragToMove5(grabInfo, dx, dy);
       if (move) {
         grabInfo.turned = true;
-        doPaintTurn4(move);
+        doPaintTurn5(move);
       } else if (Math.hypot(dx, dy) > 40) {
         grabInfo = null;
         dragStart = { x: e.clientX, y: e.clientY };
@@ -215,7 +215,7 @@ function initPaintScene5() {
   });
   el.addEventListener('pointerup', e => {
     if (e.pointerId !== activePointerId) return;
-    if (grabInfo && !grabInfo.turned && !isDragging) handlePaintTap4(e);
+    if (grabInfo && !grabInfo.turned && !isDragging) handlePaintTap5(e);
     grabInfo = null; dragStart = null; isDragging = false; activePointerId = null;
   });
   el.addEventListener('pointercancel', e => {
@@ -286,8 +286,8 @@ function buildPaintCube5() {
   }
 }
 
-function handlePaintTap4(e) {
-  if (isAnimatingPaint4) return;
+function handlePaintTap5(e) {
+  if (isAnimatingPaint5) return;
   const el = rendererPaint5.domElement;
   const rect = el.getBoundingClientRect();
   const mouse = new THREE.Vector2(
@@ -304,7 +304,7 @@ function handlePaintTap4(e) {
   if (!info) return;
   const pIdx = info.r * 5 + info.c;
   if (cubeState5[info.face][pIdx] !== paintColor) {
-    pushPaintHistory4({ type: 'paint', face: info.face, idx: pIdx, prev: cubeState5[info.face][pIdx] });
+    pushPaintHistory5({ type: 'paint', face: info.face, idx: pIdx, prev: cubeState5[info.face][pIdx] });
     cubeState5[info.face][pIdx] = paintColor;
   }
   const pm = hit.object.material[matIndex];
@@ -312,7 +312,7 @@ function handlePaintTap4(e) {
   pm.needsUpdate = true;
 }
 
-function dragToMove4(grab, dxScreen, dyScreen) {
+function dragToMove5(grab, dxScreen, dyScreen) {
   const N = grab.normal.clone();
   const dragLen = Math.hypot(dxScreen, dyScreen);
   if (dragLen < 12) return null;
@@ -356,11 +356,11 @@ function dragToMove4(grab, dxScreen, dyScreen) {
   return isPrime ? base + "'" : base;
 }
 
-function animateMoveOnScene4(move, callback) {
+function animateMoveOnScene5(move, callback) {
   const p = parseMove5(move);
   if (!p) { if (callback) callback(); return; }
-  if (isAnimatingPaint4) return;
-  isAnimatingPaint4 = true;
+  if (isAnimatingPaint5) return;
+  isAnimatingPaint5 = true;
   const sliceCubies = cubiesPaint5.filter(c => {
     const pos = c.position;
     const v = p.axis === 'x' ? pos.x : p.axis === 'y' ? pos.y : pos.z;
@@ -388,17 +388,17 @@ function animateMoveOnScene4(move, callback) {
         );
       });
       scenePaint5.remove(pivot);
-      isAnimatingPaint4 = false;
+      isAnimatingPaint5 = false;
       if (callback) callback();
     }
   })();
 }
 
-function doPaintTurn4(move) {
-  if (isAnimatingPaint4) return;
-  pushPaintHistory4({ type: 'move', move });
+function doPaintTurn5(move) {
+  if (isAnimatingPaint5) return;
+  pushPaintHistory5({ type: 'move', move });
   applyMove5(cubeState5, move);
-  animateMoveOnScene4(move, () => {
+  animateMoveOnScene5(move, () => {
     buildPaintCube5();
     hideSolution5d();
   });
@@ -425,15 +425,15 @@ function buildPaintPalette5() {
 
 // ================= BUTTONS =================
 document.getElementById('btn-back-paint5').addEventListener('click', () => {
-  if (isAnimatingPaint4) return;
-  const h = paintHistory4.pop();
+  if (isAnimatingPaint5) return;
+  const h = paintHistory5.pop();
   if (!h) return;
   if (h.type === 'paint') {
     cubeState5[h.face][h.idx] = h.prev;
   } else if (h.type === 'snapshot') {
     cubeState5 = h.state.map(f => f.slice());
   } else {
-    applyMove5(cubeState5, invertMove4(h.move));
+    applyMove5(cubeState5, invertMove5(h.move));
   }
   updateBackBtn5();
   hideSolution5d();
@@ -441,8 +441,8 @@ document.getElementById('btn-back-paint5').addEventListener('click', () => {
 });
 
 document.getElementById('btn-shuffle-paint5').addEventListener('click', () => {
-  if (isAnimatingPaint4) return;
-  pushPaintHistory4({ type: 'snapshot', state: cubeState5.map(f => f.slice()) });
+  if (isAnimatingPaint5) return;
+  pushPaintHistory5({ type: 'snapshot', state: cubeState5.map(f => f.slice()) });
   const faces = ['U', 'D', 'F', 'B', 'L', 'R'];
   const mods = ['', "'", '2'];
   const wides = ['', 'w'];
@@ -459,23 +459,23 @@ document.getElementById('btn-shuffle-paint5').addEventListener('click', () => {
 });
 
 document.getElementById('btn-reset-paint5').addEventListener('click', () => {
-  if (isAnimatingPaint4) return;
-  pushPaintHistory4({ type: 'snapshot', state: cubeState5.map(f => f.slice()) });
+  if (isAnimatingPaint5) return;
+  pushPaintHistory5({ type: 'snapshot', state: cubeState5.map(f => f.slice()) });
   cubeState5 = newSolved5();
   hideSolution5d();
   buildPaintCube5();
 });
 
 document.getElementById('btn-blank-paint5').addEventListener('click', () => {
-  if (isAnimatingPaint4) return;
-  pushPaintHistory4({ type: 'snapshot', state: cubeState5.map(f => f.slice()) });
+  if (isAnimatingPaint5) return;
+  pushPaintHistory5({ type: 'snapshot', state: cubeState5.map(f => f.slice()) });
   for (let f = 0; f < 6; f++) cubeState5[f] = new Array(25).fill(0);
   hideSolution5d();
   buildPaintCube5();
 });
 
 // ================= SOLVE =================
-function describeMove4(mv) {
+function describeMove5(mv) {
   if (!mv) return 'Selesai! 🎉 Kubus sudah solved.';
   const m = /^([UDFBLR])(w?)(['2]?)$/.exec(mv);
   if (!m) return mv;
@@ -528,7 +528,7 @@ document.getElementById('btn-solve-5d').addEventListener('click', () => {
         }
       }
       currentMoveIdx5d = -1;
-      displaySolution4d();
+      displaySolution5d();
       document.getElementById('solution5d').style.display = 'block';
       document.getElementById('solution5d').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (err) {
@@ -539,21 +539,21 @@ document.getElementById('btn-solve-5d').addEventListener('click', () => {
   }, 50);
 });
 
-function phaseName4d(idx) {
+function phaseName5d(idx) {
   for (const ph of solutionPhases5d) {
     if (idx >= ph.start && idx <= ph.end) return ph.name;
   }
   return '';
 }
 
-function displaySolution4d() {
+function displaySolution5d() {
   const container = document.getElementById('moves5d');
   container.innerHTML = '';
   solutionMoves5d.forEach((mv, idx) => {
     const chip = document.createElement('span');
     chip.textContent = mv;
     chip.style.cssText = `padding:6px 12px;border-radius:8px;background:${idx <= currentMoveIdx5d ? '#f2b13d' : '#fff'};color:#000;font-weight:bold;cursor:pointer;border:2px solid #333;`;
-    chip.addEventListener('click', () => jumpToMove4d(idx));
+    chip.addEventListener('click', () => jumpToMove5d(idx));
     container.appendChild(chip);
   });
   const instrEl = document.getElementById('step-instruction5');
@@ -562,11 +562,11 @@ function displaySolution4d() {
   const nextIdx = currentMoveIdx5d + 1;
   if (instrEl) {
     instrEl.textContent = nextIdx < solutionMoves5d.length
-      ? describeMove4(solutionMoves5d[nextIdx])
+      ? describeMove5(solutionMoves5d[nextIdx])
       : 'Selesai! 🎉 Kubus sudah solved.';
   }
   if (phaseEl) {
-    const pn = nextIdx < solutionMoves5d.length ? phaseName4d(nextIdx) : '';
+    const pn = nextIdx < solutionMoves5d.length ? phaseName5d(nextIdx) : '';
     phaseEl.textContent = pn ? `Tahap: ${pn}` : '';
   }
   if (counterEl) {
@@ -578,8 +578,8 @@ function displaySolution4d() {
   if (nextBtn) nextBtn.textContent = (currentMoveIdx5d >= solutionMoves5d.length - 1) ? 'Selesai ✓' : 'Next ▶';
 }
 
-function jumpToMove4d(idx) {
-  if (isAnimatingPaint4) return;
+function jumpToMove5d(idx) {
+  if (isAnimatingPaint5) return;
   isPlaying5d = false;
   const playBtn = document.getElementById('btn-play5d');
   if (playBtn) playBtn.textContent = '▶ Putar Otomatis';
@@ -589,41 +589,41 @@ function jumpToMove4d(idx) {
     applyMove5(cubeState5, solutionMoves5d[currentMoveIdx5d]);
   }
   while (currentMoveIdx5d > idx) {
-    applyMove5(cubeState5, invertMove4(solutionMoves5d[currentMoveIdx5d]));
+    applyMove5(cubeState5, invertMove5(solutionMoves5d[currentMoveIdx5d]));
     currentMoveIdx5d--;
   }
   buildPaintCube5();
-  displaySolution4d();
+  displaySolution5d();
 }
 
-function stepForward4d() {
+function stepForward5d() {
   if (currentMoveIdx5d >= solutionMoves5d.length - 1) return;
-  if (isAnimatingPaint4) return;
+  if (isAnimatingPaint5) return;
   currentMoveIdx5d++;
   const mv = solutionMoves5d[currentMoveIdx5d];
   applyMove5(cubeState5, mv);
-  displaySolution4d();
-  animateMoveOnScene4(mv, () => {
+  displaySolution5d();
+  animateMoveOnScene5(mv, () => {
     buildPaintCube5();
-    displaySolution4d();
+    displaySolution5d();
   });
 }
 
-function stepBackward4d() {
+function stepBackward5d() {
   if (currentMoveIdx5d < 0) return;
-  if (isAnimatingPaint4) return;
+  if (isAnimatingPaint5) return;
   const mv = solutionMoves5d[currentMoveIdx5d];
   currentMoveIdx5d--;
-  applyMove5(cubeState5, invertMove4(mv));
-  displaySolution4d();
-  animateMoveOnScene4(invertMove4(mv), () => {
+  applyMove5(cubeState5, invertMove5(mv));
+  displaySolution5d();
+  animateMoveOnScene5(invertMove5(mv), () => {
     buildPaintCube5();
-    displaySolution4d();
+    displaySolution5d();
   });
 }
 
-document.getElementById('btn-next5d').addEventListener('click', stepForward4d);
-document.getElementById('btn-prev5d').addEventListener('click', stepBackward4d);
+document.getElementById('btn-next5d').addEventListener('click', stepForward5d);
+document.getElementById('btn-prev5d').addEventListener('click', stepBackward5d);
 document.getElementById('btn-play5d').addEventListener('click', function () {
   if (isPlaying5d) { isPlaying5d = false; this.textContent = '▶ Putar Otomatis'; return; }
   isPlaying5d = true;
@@ -634,7 +634,7 @@ document.getElementById('btn-play5d').addEventListener('click', function () {
       document.getElementById('btn-play5d').textContent = '▶ Putar Otomatis';
       return;
     }
-    stepForward4d();
+    stepForward5d();
     setTimeout(() => { if (isPlaying5d) playNext(); }, 900);
   })();
 });
